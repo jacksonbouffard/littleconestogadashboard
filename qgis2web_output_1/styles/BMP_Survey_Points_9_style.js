@@ -21,32 +21,46 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
         labelText = String("");
     }
     
+    // Calculate scale factor based on resolution (zoom level)
+    // Lower resolution = zoomed out, higher resolution = zoomed in
+    var scaleFactor = 1;
+    if (resolution < 5) {
+        // Very zoomed in
+        scaleFactor = 1.5;
+    } else if (resolution < 20) {
+        // Zoomed in
+        scaleFactor = 1.3;
+    } else if (resolution < 50) {
+        // Medium zoom
+        scaleFactor = 1.1;
+    }
+    
     // Helper function to create implementation status halo
-    function createImplementationHalo(feature) {
+    function createImplementationHalo(feature, scale) {
         var implementationStatus = feature.get("Implemented");
         if (implementationStatus === "yes") {
             return new ol.style.Style({
                 image: new ol.style.Circle({
-                    radius: 8,
+                    radius: 8 * scale,
                     fill: new ol.style.Fill({
                         color: 'rgba(76,175,80,0.3)' // Light green halo for implemented
                     }),
                     stroke: new ol.style.Stroke({
                         color: 'rgba(76,175,80,1.0)',
-                        width: 2
+                        width: 2 * scale
                     })
                 })
             });
         } else if (implementationStatus === "planned") {
             return new ol.style.Style({
                 image: new ol.style.Circle({
-                    radius: 8,
+                    radius: 8 * scale,
                     fill: new ol.style.Fill({
                         color: 'rgba(255,235,59,0.2)' // Light yellow halo for planned
                     }),
                     stroke: new ol.style.Stroke({
                         color: 'rgba(255,235,59,0.6)',
-                        width: 2
+                        width: 2 * scale
                     })
                 })
             });
@@ -63,7 +77,7 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
         var styles = [];
         
         // Add implementation halo if applicable
-        var halo = createImplementationHalo(feature);
+        var halo = createImplementationHalo(feature, scaleFactor);
         if (halo) {
             styles.push(halo);
         }
@@ -74,14 +88,14 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
         // Add main point style based on BMP category
         styles.push(new ol.style.Style({
             image: new ol.style.Circle({
-                radius: 4 + size,
+                radius: (5 + size) * scaleFactor,
                 displacement: [0, 0],
                 stroke: new ol.style.Stroke({
                     color: 'rgba(0,0,0,1.0)', // thin black border
                     lineDash: null,
                     lineCap: 'butt',
                     lineJoin: 'miter',
-                    width: 1
+                    width: 1.2 * scaleFactor
                 }),
                 fill: new ol.style.Fill({
                     color: category === 'Agricultural' ? 
