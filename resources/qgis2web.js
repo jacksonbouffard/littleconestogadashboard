@@ -112,6 +112,34 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
           </div>
           <div class="filter-group">
+              <label class="collapsible-label-conservation" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Conservation Land:</span> <span class="collapse-icon-conservation">▼</span>
+              </label>
+              <div class="checkbox-group collapsed" id="filter-conservation-land">
+                  <label><input type="checkbox" value="Agricultural Easement"> Agricultural Easement</label>
+                  <label><input type="checkbox" value="Local Park"> Local Park</label>
+                  <label><input type="checkbox" value="Nonconservation Area"> Nonconservation Area</label>
+              </div>
+          </div>
+          <div class="filter-group">
+              <label class="collapsible-label-municipality" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Municipality:</span> <span class="collapse-icon-municipality">▼</span>
+              </label>
+              <div class="checkbox-group collapsed" id="filter-municipality">
+                  <label><input type="checkbox" value="EAST HEMPFIELD"> East Hempfield</label>
+                  <label><input type="checkbox" value="EAST PETERSBURG"> East Petersburg</label>
+                  <label><input type="checkbox" value="LANCASTER"> Lancaster</label>
+                  <label><input type="checkbox" value="LITITZ"> Lititz</label>
+                  <label><input type="checkbox" value="MANHEIM"> Manheim</label>
+                  <label><input type="checkbox" value="MANOR"> Manor</label>
+                  <label><input type="checkbox" value="MILLERSVILLE"> Millersville</label>
+                  <label><input type="checkbox" value="MOUNTVILLE"> Mountville</label>
+                  <label><input type="checkbox" value="PENN"> Penn</label>
+                  <label><input type="checkbox" value="WARWICK"> Warwick</label>
+                  <label><input type="checkbox" value="WEST HEMPFIELD"> West Hempfield</label>
+              </div>
+          </div>
+          <div class="filter-group">
               <label style="display: flex; justify-content: space-between; align-items: center;">
                   <span>In Critical Recharge:</span>
                   <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
@@ -146,6 +174,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   <label><input type="checkbox" value="GW"> GW - Grassed Waterway</label>
                   <label><input type="checkbox" value="WR"> WR - Wetland Restoration</label>
                   <label><input type="checkbox" value="BRC"> BRC - Barnyard Runoff Control</label>
+                  <label><input type="checkbox" value="CL"> CL - Conservation Landscaping</label>
+                  <label><input type="checkbox" value="NT"> NT - No-Till</label>
+                  <label><input type="checkbox" value="PM"> PM - Pasture Management</label>
+                  <label><input type="checkbox" value="T&D"> T&D - Terrace & Diversion</label>
               </div>
           </div>
       </div>
@@ -191,8 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Prevent scroll propagation from utility bar to map
   utilityBar.addEventListener('wheel', function(e) {
+    var atTop = utilityBar.scrollTop === 0;
+    var atBottom = utilityBar.scrollTop + utilityBar.clientHeight >= utilityBar.scrollHeight;
+    
+    // If scrolling up at top or down at bottom, prevent propagation
+    if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+      e.preventDefault();
+    }
+    
+    // Always stop propagation to prevent map from scrolling
     e.stopPropagation();
-  }, { passive: true });
+  }, { passive: false });
   
   // Prevent scroll propagation from splash screen to map
   var splashScreen = document.getElementById('splash-screen');
@@ -210,6 +251,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get critical recharge filter state (false = Off/0, true = On/1)
     var criticalRechargeOn = document.getElementById('critical-recharge-toggle').checked;
+    
+    // Get selected conservation land types from checkboxes
+    var selectedConservationTypes = [];
+    var conservationCheckboxes = document.querySelectorAll('#filter-conservation-land input[type="checkbox"]:checked');
+    conservationCheckboxes.forEach(function(checkbox) {
+      selectedConservationTypes.push(checkbox.value);
+    });
+    
+    // Get selected municipalities from checkboxes
+    var selectedMunicipalities = [];
+    var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]:checked');
+    municipalityCheckboxes.forEach(function(checkbox) {
+      selectedMunicipalities.push(checkbox.value);
+    });
     
     // Get selected priority subwatersheds from checkboxes
     var selectedSubwatersheds = [];
@@ -242,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get AND/OR logic (false = OR, true = AND)
     var useAndLogic = document.getElementById('project-type-logic').checked;
     
-    console.log('Filter values:', {swScoreThreshold, priorityScoreThreshold, selectedSubwatersheds, selectedSrbcAreas, selectedBmpCategories, selectedProjectTypes, useAndLogic, criticalRechargeOn});
+    console.log('Filter values:', {swScoreThreshold, priorityScoreThreshold, selectedSubwatersheds, selectedSrbcAreas, selectedBmpCategories, selectedProjectTypes, useAndLogic, criticalRechargeOn, selectedConservationTypes});
     
     // Get the layers
     var pointsLayer = null;
@@ -332,6 +387,37 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         
+        // Filter by Conservation Land (if any types are selected)
+        if (selectedConservationTypes.length > 0) {
+          var isNonconservation = !props.Preservation_Type || props.Preservation_Type === null || props.Preservation_Type === '';
+          var hasNonconservationSelected = selectedConservationTypes.indexOf('Nonconservation Area') !== -1;
+          
+          if (isNonconservation) {
+            // Feature has no conservation land - only show if "Nonconservation Area" is selected
+            if (!hasNonconservationSelected) {
+              show = false;
+            }
+          } else {
+            // Feature has conservation land - check if it matches selected types
+            if (selectedConservationTypes.indexOf(props.Preservation_Type) === -1 && !hasNonconservationSelected) {
+              show = false;
+            } else if (selectedConservationTypes.indexOf(props.Preservation_Type) === -1 && hasNonconservationSelected) {
+              // Only "Nonconservation Area" is selected, but this feature has conservation land
+              var onlyNonconservation = selectedConservationTypes.length === 1 && hasNonconservationSelected;
+              if (onlyNonconservation) {
+                show = false;
+              }
+            }
+          }
+        }
+        
+        // Filter by Municipality (if any municipalities are selected)
+        if (selectedMunicipalities.length > 0) {
+          if (selectedMunicipalities.indexOf(props.Municipality) === -1) {
+            show = false;
+          }
+        }
+        
         // Filter by Project_Type (if any types are selected)
         if (selectedProjectTypes.length > 0) {
           // Check if the feature's Project_Type matches any selected type
@@ -386,6 +472,37 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by In_Critical_Recharge (if toggle is on, only show features with value = 1)
         if (criticalRechargeOn) {
           if (props.In_Critical_Recharge !== 1 && props.In_Critical_Recharge !== 1.0) {
+            show = false;
+          }
+        }
+        
+        // Filter by Conservation Land (if any types are selected)
+        if (selectedConservationTypes.length > 0) {
+          var isNonconservation = !props.Preservation_Type || props.Preservation_Type === null || props.Preservation_Type === '';
+          var hasNonconservationSelected = selectedConservationTypes.indexOf('Nonconservation Area') !== -1;
+          
+          if (isNonconservation) {
+            // Feature has no conservation land - only show if "Nonconservation Area" is selected
+            if (!hasNonconservationSelected) {
+              show = false;
+            }
+          } else {
+            // Feature has conservation land - check if it matches selected types
+            if (selectedConservationTypes.indexOf(props.Preservation_Type) === -1 && !hasNonconservationSelected) {
+              show = false;
+            } else if (selectedConservationTypes.indexOf(props.Preservation_Type) === -1 && hasNonconservationSelected) {
+              // Only "Nonconservation Area" is selected, but this feature has conservation land
+              var onlyNonconservation = selectedConservationTypes.length === 1 && hasNonconservationSelected;
+              if (onlyNonconservation) {
+                show = false;
+              }
+            }
+          }
+        }
+        
+        // Filter by Municipality (if any municipalities are selected)
+        if (selectedMunicipalities.length > 0) {
+          if (selectedMunicipalities.indexOf(props.Municipality) === -1) {
             show = false;
           }
         }
@@ -578,6 +695,18 @@ document.addEventListener('DOMContentLoaded', function() {
     applyFilters();
   });
   
+  // Add event listeners for Conservation Land checkboxes
+  var conservationCheckboxes = document.querySelectorAll('#filter-conservation-land input[type="checkbox"]');
+  conservationCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', applyFilters);
+  });
+  
+  // Add event listeners for Municipality checkboxes
+  var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]');
+  municipalityCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', applyFilters);
+  });
+  
   // Add collapsible functionality for Priority Subwatershed
   var collapsibleLabel = document.querySelector('.collapsible-label');
   var subwatershedGroup = document.getElementById('filter-priority-subwatershed');
@@ -614,6 +743,46 @@ document.addEventListener('DOMContentLoaded', function() {
     collapseIconSrbc.classList.toggle('collapsed');
   });
 
+  // Add collapsible functionality for Conservation Land
+  var collapsibleLabelConservation = document.querySelector('.collapsible-label-conservation');
+  var conservationGroup = document.getElementById('filter-conservation-land');
+  var collapseIconConservation = document.querySelector('.collapse-icon-conservation');
+  
+  collapsibleLabelConservation.addEventListener('click', function() {
+    conservationGroup.classList.toggle('collapsed');
+    collapseIconConservation.classList.toggle('collapsed');
+  });
+
+  // Add collapsible functionality for Municipality
+  var collapsibleLabelMunicipality = document.querySelector('.collapsible-label-municipality');
+  var municipalityGroup = document.getElementById('filter-municipality');
+  var collapseIconMunicipality = document.querySelector('.collapse-icon-municipality');
+  
+  collapsibleLabelMunicipality.addEventListener('click', function() {
+    municipalityGroup.classList.toggle('collapsed');
+    collapseIconMunicipality.classList.toggle('collapsed');
+  });
+
+  // Add mouse wheel scroll support for all checkbox groups
+  var checkboxGroups = document.querySelectorAll('.checkbox-group');
+  checkboxGroups.forEach(function(group) {
+    group.addEventListener('wheel', function(e) {
+      // Check if the group has overflow (scrollable content)
+      if (this.scrollHeight > this.clientHeight) {
+        var atTop = this.scrollTop === 0;
+        var atBottom = this.scrollTop + this.clientHeight >= this.scrollHeight;
+        
+        // Allow scrolling within the group, stop propagation to parent
+        e.stopPropagation();
+        
+        // Prevent default only at scroll boundaries to avoid bounce
+        if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+          e.preventDefault();
+        }
+      }
+    }, { passive: false });
+  });
+
   // Create utility bar toggle control (matching OL control structure)
   var utilityBarToggleContainer = document.createElement('div');
   utilityBarToggleContainer.className = 'ol-unselectable ol-control utility-bar-toggle-control';
@@ -642,17 +811,18 @@ document.addEventListener('DOMContentLoaded', function() {
   utilityBarToggle.onclick = function() {
       utilityBar.classList.remove('collapsed');
       utilityBarToggleContainer.style.display = 'none';
-      // Add slender close button to sidebar if not present
-      if (!utilityBar.querySelector('.utility-bar-close')) {
+      // Add close button to body (not sidebar) if not present
+      if (!document.querySelector('.utility-bar-close')) {
         var utilityBarClose = document.createElement('div');
         utilityBarClose.className = 'utility-bar-close';
-        utilityBarClose.innerHTML = '&times;';
+        utilityBarClose.innerHTML = '&#9664;'; // Left-pointing arrow
+        utilityBarClose.title = 'Close sidebar';
         utilityBarClose.onclick = function() {
           utilityBar.classList.add('collapsed');
           utilityBarToggleContainer.style.display = '';
           utilityBarClose.remove();
         };
-        utilityBar.appendChild(utilityBarClose);
+        document.body.appendChild(utilityBarClose);
       }
   };
   
@@ -682,8 +852,9 @@ var map = new ol.Map({
     })
 });
 
-//initial view - epsg:3857 coordinates if not "Match project CRS"
-map.getView().fit([-8518689.534796, 4861471.562612, -8479081.772871, 4885801.127879], map.getSize());
+//initial view - fit to HUC12 Boundaries layer extent
+var huc12Extent = jsonSource_HUC12_Boundaries_6.getExtent();
+map.getView().fit(huc12Extent, map.getSize());
 
 //full zooms only
 map.getView().setProperties({constrainResolution: true});
