@@ -7,7 +7,7 @@ var style_critical_recharge_area_footprint = function(feature, resolution) {
     canvas.height = 8;
     
     // Draw diagonal hatch pattern
-    context.strokeStyle = 'rgba(255, 20, 147, 0.2)'; // Neon pink with low opacity
+    context.strokeStyle = 'rgba(255, 20, 147, 0.75)'; // Neon pink with low opacity
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(0, 8);
@@ -19,10 +19,10 @@ var style_critical_recharge_area_footprint = function(feature, resolution) {
     var style = new ol.style.Style({
         stroke: new ol.style.Stroke({
             color: 'rgba(255, 20, 147, 1)', // Neon pink
-            width: 3.0
+            width: 1.0
         }),
         fill: new ol.style.Fill({
-            color: pattern || 'rgba(255, 20, 147, 0.15)' // Fallback to semi-transparent pink
+            color: pattern || 'rgba(255, 20, 147, 0.65)' // Fallback to semi-transparent pink
         })
     });
     
