@@ -43,11 +43,11 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
                 image: new ol.style.Circle({
                     radius: 8 * scale,
                     fill: new ol.style.Fill({
-                        color: 'rgba(76,175,80,0.3)' // Light green halo for implemented
+                        color: 'rgba(0,255,0,0.25)' // Neon green halo for implemented
                     }),
                     stroke: new ol.style.Stroke({
-                        color: 'rgba(76,175,80,1.0)',
-                        width: 2 * scale
+                        color: 'rgba(0,255,0,1.0)',
+                        width: 3 * scale
                     })
                 })
             });

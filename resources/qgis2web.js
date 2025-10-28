@@ -69,18 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
       })
   });
 
-  // TEST: Add a visible test element to confirm JS is running
-  var testDiv = document.createElement('div');
-  testDiv.textContent = 'JS Loaded';
-  testDiv.style.position = 'fixed';
-  testDiv.style.top = '10px';
-  testDiv.style.right = '10px';
-  testDiv.style.background = '#ff0';
-  testDiv.style.zIndex = '9999';
-  testDiv.style.padding = '6px 12px';
-  testDiv.style.fontWeight = 'bold';
-  document.body.appendChild(testDiv);
-
   // Inject utility bar and toggle button
   var utilityBar = document.createElement('div');
   utilityBar.className = 'utility-bar collapsed';
@@ -89,12 +77,12 @@ document.addEventListener('DOMContentLoaded', function() {
           <h3>Both (Points & Parcels)</h3>
           <div class="filter-group">
               <label class="collapsible-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                  <span>Priority Subwatershed:</span> <span class="collapse-icon">▼</span>
+                  <span>Delisting Catchments:</span> <span class="collapse-icon">▼</span>
               </label>
               <div class="checkbox-group collapsed" id="filter-priority-subwatershed">
-                  <label><input type="checkbox" value="Co76"> Co76</label>
-                  <label><input type="checkbox" value="Co77"> Co77</label>
-                  <label><input type="checkbox" value="Co99"> Co99</label>
+                  <label><input type="checkbox" value="Co76"> Co76 - Indian Run Headwaters North</label>
+                  <label><input type="checkbox" value="Co77"> Co77 -  Indian Run Headwaters South</label>
+                  <label><input type="checkbox" value="Co99"> Co99 - Swarr Run Headwaters</label>
                   <label><input type="checkbox" value="Nonpriority Area"> Nonpriority Area</label>
               </div>
           </div>
@@ -319,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var title = layer.get('title');
         console.log('Layer title:', title);
         // Use startsWith to handle legend HTML in titles
-        if (title && title.startsWith('BMP_Survey_Points')) {
+        if (title && title.startsWith('BMP Survey Points')) {
           pointsLayer = layer;
           console.log('Found points layer');
         } else if (title && title.startsWith('Parcel Level Projects')) {
@@ -433,6 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Hidden', hiddenCount, 'points');
       
       // Force layer refresh
+      pointSource.changed();
       pointsLayer.changed();
     } else {
       console.log('Points layer not found!');
@@ -462,9 +451,9 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
         
-        // Filter by SRBC_Focus_Name (if any are selected)
+        // Filter by SRBC_Focus_Area_Name (if any are selected)
         if (selectedSrbcAreas.length > 0) {
-          if (!props.SRBC_Focus_Name || selectedSrbcAreas.indexOf(props.SRBC_Focus_Name) === -1) {
+          if (!props.SRBC_Focus_Area_Name || selectedSrbcAreas.indexOf(props.SRBC_Focus_Area_Name) === -1) {
             show = false;
           }
         }
@@ -551,6 +540,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Hidden', hiddenCount, 'parcels');
       
       // Force layer refresh
+      parcelSource.changed();
       parcelsLayer.changed();
     } else {
       console.log('Parcels layer not found!');
@@ -632,6 +622,122 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Critical Recharge Area layer', criticalRechargeOn ? 'ON' : 'OFF');
       } else {
         console.log('Critical Recharge Area layer not found!');
+      }
+    }
+    
+    // Handle Delisting Catchments layer visibility and filtering
+    var delistingCatchmentsLayer = null;
+    if (boundariesGroup) {
+      var boundaryLayers = boundariesGroup.getLayers ? boundariesGroup.getLayers().getArray() : [];
+      boundaryLayers.forEach(function(layer) {
+        var title = layer.get('title');
+        if (title && title.indexOf('Delisting Catchments') !== -1) {
+          delistingCatchmentsLayer = layer;
+        }
+      });
+      
+      if (delistingCatchmentsLayer) {
+        console.log('Found Delisting Catchments layer');
+        
+        // Filter out "Nonpriority Area" from display logic
+        var catchmentsToShow = selectedSubwatersheds.filter(function(area) {
+          return area !== 'Nonpriority Area';
+        });
+        
+        // Turn layer on if any catchments are selected, off if none
+        if (catchmentsToShow.length > 0) {
+          delistingCatchmentsLayer.setVisible(true);
+          console.log('Delisting Catchments layer turned ON, filtering to:', catchmentsToShow);
+          
+          // Filter the layer features
+          var source = delistingCatchmentsLayer.getSource();
+          var features = source.getFeatures();
+          console.log('Total Delisting Catchments features:', features.length);
+          
+          features.forEach(function(feature) {
+            var props = feature.getProperties();
+            var showFeature = false;
+            
+            console.log('Delisting Catchment Feature NAME:', props.NAME);
+            
+            // Check if this feature's NAME is in the selected list
+            if (props.NAME && selectedSubwatersheds.indexOf(props.NAME) !== -1) {
+              showFeature = true;
+              console.log('  -> Showing this feature');
+            }
+            
+            // Set feature visibility
+            feature.setStyle(showFeature ? null : new ol.style.Style({}));
+          });
+          
+          source.changed();
+        } else {
+          delistingCatchmentsLayer.setVisible(false);
+          console.log('Delisting Catchments layer turned OFF (no selections or only Nonpriority Area selected)');
+        }
+      } else {
+        console.log('Delisting Catchments layer not found!');
+      }
+    }
+    
+    // Handle Municipality Boundaries layer visibility and filtering
+    var municipalityBoundariesLayer = null;
+    if (boundariesGroup) {
+      var boundaryLayers = boundariesGroup.getLayers ? boundariesGroup.getLayers().getArray() : [];
+      boundaryLayers.forEach(function(layer) {
+        var title = layer.get('title');
+        if (title && title.indexOf('Municipality Boundaries') !== -1) {
+          municipalityBoundariesLayer = layer;
+        }
+      });
+      
+      if (municipalityBoundariesLayer) {
+        console.log('Found Municipality Boundaries layer');
+        
+        // Turn layer on if any municipalities are selected, off if none
+        if (selectedMunicipalities.length > 0) {
+          municipalityBoundariesLayer.setVisible(true);
+          console.log('Municipality Boundaries layer turned ON, filtering to:', selectedMunicipalities);
+          
+          // Filter the layer features
+          var source = municipalityBoundariesLayer.getSource();
+          var features = source.getFeatures();
+          console.log('Total Municipality Boundary features:', features.length);
+          
+          features.forEach(function(feature) {
+            var props = feature.getProperties();
+            var showFeature = false;
+            
+            console.log('Municipality Feature MUNICIPAL_NAME:', props.MUNICIPAL_NAME);
+            
+            // Check if this feature's MUNICIPAL_NAME is in the selected list
+            if (props.MUNICIPAL_NAME && selectedMunicipalities.indexOf(props.MUNICIPAL_NAME) !== -1) {
+              showFeature = true;
+              console.log('  -> Showing this feature');
+            }
+            
+            // Set feature visibility
+            feature.setStyle(showFeature ? null : new ol.style.Style({}));
+          });
+          
+          source.changed();
+        } else {
+          // No filters selected - only hide if not manually toggled on
+          // Check current visibility and apply filter-free rendering
+          var currentVisibility = municipalityBoundariesLayer.getVisible();
+          if (currentVisibility) {
+            // Layer is manually on, show all features
+            var source = municipalityBoundariesLayer.getSource();
+            if (source) {
+              source.getFeatures().forEach(function(feature) {
+                feature.setStyle(null); // Show all features
+              });
+              source.changed();
+            }
+          }
+        }
+      } else {
+        console.log('Municipality Boundaries layer not found!');
       }
     }
   }

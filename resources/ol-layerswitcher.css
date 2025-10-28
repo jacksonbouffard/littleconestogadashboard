@@ -7,14 +7,15 @@
 
 .layer-switcher .panel {
   margin: 0;
-  border: 4px solid #eee;
+  border: 2px solid #0056b3;
   border-radius: 4px;
-  background-color: white;
+  background-color: #f8f9fa;
   display: none;
   max-height: inherit;
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+  padding: 12px 8px;
 }
 
 .layer-switcher button {
@@ -26,14 +27,15 @@
     /*logo.png*/;
   background-repeat: no-repeat;
   background-position: 2px;
-  background-color: white;
-  color: black;
-  border: none;
+  background-color: #f8f9fa;
+  color: #333;
+  border: 2px solid #0056b3;
+  border-radius: 4px;
 }
 
 .layer-switcher button:focus,
 .layer-switcher button:hover {
-  background-color: white;
+  background-color: #e9ecef;
 }
 
 .layer-switcher.shown {
@@ -63,13 +65,14 @@
   background-image: unset;
   right: 2px;
   position: absolute;
-  background-color: #eee;
+  background-color: #f8f9fa;
+  border: 2px solid #0056b3;
   margin: 1px;
 }
 
 .layer-switcher.shown button:focus,
 .layer-switcher.shown button:hover {
-  background-color: #fafafa;
+  background-color: #e9ecef;
 }
 
 .layer-switcher ul {
@@ -79,16 +82,24 @@
 }
 .layer-switcher ul ul {
   padding-left: 1.2em;
-  margin: 0.1em 0 0 0;
+  margin: 0.5em 0 0.5em 0;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 0.5em 0.5em 0.5em 1.5em;
 }
 .layer-switcher li.group + li.group {
-  margin-top: 0.4em;
-}
-.layer-switcher li.group + li.layer-switcher-base-group {
+  margin-top: 1em;
+  padding-top: 0.8em;
+  border-top: 1px solid #dee2e6;
 }
 
 .layer-switcher li.group > label {
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 18px;
+  color: #333;
+  text-transform: none;
+  letter-spacing: normal;
+  padding-bottom: 0.3em;
 }
 
 .layer-switcher.layer-switcher-group-select-style-none li.group > label {
@@ -97,7 +108,8 @@
 
 .layer-switcher li {
   position: relative;
-  margin-top: 0.3em;
+  margin-top: 0.5em;
+  margin-bottom: 0.3em;
 }
 
 .layer-switcher li input {
@@ -106,12 +118,24 @@
   height: 1em;
   width: 1em;
   font-size: 1em;
+  cursor: pointer;
+  accent-color: #0056b3;
 }
 .layer-switcher li label {
   padding-left: 2.7em;
   padding-right: 1.2em;
   display: inline-block;
   margin-top: 1px;
+  color: #333;
+  font-size: 1em;
+  font-weight: normal;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.layer-switcher li label:hover {
+  color: #0056b3;
 }
 
 .layer-switcher label.disabled {
@@ -155,6 +179,14 @@ li.layer-switcher-base-group > label {
   -webkit-transition: -webkit-transform 0.2s ease-in-out;
   -ms-transition: -ms-transform 0.2s ease-in-out;
   transition: transform 0.2s ease-in-out;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.layer-switcher .group button:hover {
+  opacity: 1;
 }
 
 .layer-switcher .group.layer-switcher-close button {
