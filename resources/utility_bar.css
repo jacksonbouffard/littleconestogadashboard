@@ -225,6 +225,7 @@ body {
 .collapse-icon,
 .collapse-icon-srbc,
 .collapse-icon-bmp,
+.collapse-icon-implementation,
 .collapse-icon-conservation,
 .collapse-icon-municipality {
   font-size: 10px;
@@ -234,6 +235,7 @@ body {
 .collapse-icon.collapsed,
 .collapse-icon-srbc.collapsed,
 .collapse-icon-bmp.collapsed,
+.collapse-icon-implementation.collapsed,
 .collapse-icon-conservation.collapsed,
 .collapse-icon-municipality.collapsed {
   transform: rotate(-90deg);

@@ -150,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function() {
                       </label>
                   </span>
               </label>
+              <div id="and-logic-message" style="display: none; font-size: 11px; color: #666; font-style: italic; margin: 5px 0 8px 0;">
+                  Showing parcel projects with all selected types
+              </div>
               <div class="checkbox-group" id="filter-project-type">
                   <label><input type="checkbox" value="SWR"> SWR - Stormwater Retrofit</label>
                   <label><input type="checkbox" value="RB"> RB - Riparian Buffer</label>
@@ -179,6 +182,16 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class="checkbox-group collapsed" id="filter-bmp-category">
                   <label><input type="checkbox" value="Stormwater"> Stormwater</label>
                   <label><input type="checkbox" value="Agricultural"> Agricultural</label>
+              </div>
+          </div>
+          <div class="filter-group">
+              <label class="collapsible-label-implementation" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Implementation Status:</span> <span class="collapse-icon-implementation">▼</span>
+              </label>
+              <div class="checkbox-group collapsed" id="filter-implementation-status">
+                  <label><input type="checkbox" value="Potential"> Potential</label>
+                  <label><input type="checkbox" value="Implemented"> Implemented</label>
+                  <label><input type="checkbox" value="Planned"> Planned</label>
               </div>
           </div>
           <div class="filter-group">
@@ -275,6 +288,13 @@ document.addEventListener('DOMContentLoaded', function() {
       selectedBmpCategories.push(checkbox.value);
     });
     
+    // Get selected implementation statuses from checkboxes
+    var selectedImplementationStatuses = [];
+    var implementationStatusCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]:checked');
+    implementationStatusCheckboxes.forEach(function(checkbox) {
+      selectedImplementationStatuses.push(checkbox.value);
+    });
+    
     // Get selected project types from checkboxes
     var selectedProjectTypes = [];
     var checkboxes = document.querySelectorAll('#filter-project-type input[type="checkbox"]:checked');
@@ -284,6 +304,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get AND/OR logic (false = OR, true = AND)
     var useAndLogic = document.getElementById('project-type-logic').checked;
+    
+    // When AND logic is used, hide points layer as AND logic only applies to parcel projects
+    var shouldHidePoints = useAndLogic && selectedProjectTypes.length > 0;
     
     console.log('Filter values:', {swScoreThreshold, priorityScoreThreshold, selectedSubwatersheds, selectedSrbcAreas, selectedBmpCategories, selectedProjectTypes, useAndLogic, criticalRechargeOn, selectedConservationTypes});
     
@@ -325,18 +348,25 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Filtering', pointFeatures.length, 'point features');
       var hiddenCount = 0;
       
-      // Log first feature for debugging
-      if (pointFeatures.length > 0) {
-        var firstProps = pointFeatures[0].getProperties();
-        console.log('Sample feature properties:', {
-          Final_SW_Score: firstProps.Final_SW_Score,
-          Priority_Subwatershed: firstProps.Priority_Subwatershed,
-          BMP_Category: firstProps.BMP_Category,
-          Project_Type: firstProps.Project_Type
+      // If AND logic is enabled with project types selected, hide all points
+      if (shouldHidePoints) {
+        console.log('Hiding all points because AND logic is enabled');
+        pointFeatures.forEach(function(feature) {
+          feature.setStyle(new ol.style.Style({}));
         });
-      }
+      } else {
+        // Log first feature for debugging
+        if (pointFeatures.length > 0) {
+          var firstProps = pointFeatures[0].getProperties();
+          console.log('Sample feature properties:', {
+            Final_SW_Score: firstProps.Final_SW_Score,
+            Priority_Subwatershed: firstProps.Priority_Subwatershed,
+            BMP_Category: firstProps.BMP_Category,
+            Project_Type: firstProps.Project_Type
+          });
+        }
       
-      pointFeatures.forEach(function(feature) {
+        pointFeatures.forEach(function(feature) {
         var props = feature.getProperties();
         var show = true;
         
@@ -364,6 +394,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by BMP_Category (if any are selected)
         if (selectedBmpCategories.length > 0) {
           if (!props.BMP_Category || selectedBmpCategories.indexOf(props.BMP_Category) === -1) {
+            show = false;
+          }
+        }
+        
+        // Filter by Implementation Status (if any are selected)
+        if (selectedImplementationStatuses.length > 0) {
+          var implemented = props.Implemented;
+          var status = 'Potential'; // default
+          
+          if (implemented === 'yes') {
+            status = 'Implemented';
+          } else if (implemented === 'planned') {
+            status = 'Planned';
+          }
+          
+          if (selectedImplementationStatuses.indexOf(status) === -1) {
             show = false;
           }
         }
@@ -418,6 +464,7 @@ document.addEventListener('DOMContentLoaded', function() {
         feature.setStyle(show ? null : new ol.style.Style({}));
         if (!show) hiddenCount++;
       });
+      }
       console.log('Hidden', hiddenCount, 'points');
       
       // Force layer refresh
@@ -771,6 +818,12 @@ document.addEventListener('DOMContentLoaded', function() {
     checkbox.addEventListener('change', applyFilters);
   });
   
+  // Add event listeners for all implementation status checkboxes
+  var implementationStatusCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]');
+  implementationStatusCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', applyFilters);
+  });
+  
   // Add event listeners for all project type checkboxes
   var projectTypeCheckboxes = document.querySelectorAll('#filter-project-type input[type="checkbox"]');
   projectTypeCheckboxes.forEach(function(checkbox) {
@@ -780,11 +833,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add event listener for AND/OR toggle
   var logicToggle = document.getElementById('project-type-logic');
   var logicLabel = document.getElementById('logic-label');
+  var andLogicMessage = document.getElementById('and-logic-message');
+  
   logicToggle.addEventListener('change', function() {
     if (this.checked) {
       logicLabel.textContent = 'AND';
+      andLogicMessage.style.display = 'block';
     } else {
       logicLabel.textContent = 'OR';
+      andLogicMessage.style.display = 'none';
     }
     applyFilters();
   });
@@ -831,6 +888,16 @@ document.addEventListener('DOMContentLoaded', function() {
   collapsibleLabelBmp.addEventListener('click', function() {
     bmpCategoryGroup.classList.toggle('collapsed');
     collapseIconBmp.classList.toggle('collapsed');
+  });
+  
+  // Add collapsible functionality for Implementation Status
+  var collapsibleLabelImplementation = document.querySelector('.collapsible-label-implementation');
+  var implementationGroup = document.getElementById('filter-implementation-status');
+  var collapseIconImplementation = document.querySelector('.collapse-icon-implementation');
+  
+  collapsibleLabelImplementation.addEventListener('click', function() {
+    implementationGroup.classList.toggle('collapsed');
+    collapseIconImplementation.classList.toggle('collapsed');
   });
   
   // Add event listeners for all SRBC focus area checkboxes
@@ -1109,6 +1176,12 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             if (swScore !== null) {
                 summaryText += '<div style="font-size: 15px; margin-bottom: 10px;">• Stormwater Priority: ' + swScore + '</div>';
             }
+        }
+        
+        // Add Critical Recharge Zone message if In_Critical_Recharge = 1
+        var inCriticalRecharge = currentFeature.get('In_Critical_Recharge');
+        if (inCriticalRecharge === 1 || inCriticalRecharge === 1.0) {
+            summaryText += '<div style="font-size: 15px; margin-bottom: 10px; color: red; font-style: italic;">In Critical Recharge Zone</div>';
         }
         
         // Add source information

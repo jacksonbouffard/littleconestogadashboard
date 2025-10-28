@@ -46,22 +46,6 @@ var wms_layers = [];
                 url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'
             })
         });
-var format_Little_Conestoga_Streams_3 = new ol.format.GeoJSON();
-var features_Little_Conestoga_Streams_3 = format_Little_Conestoga_Streams_3.readFeatures(json_Little_Conestoga_Streams_3, 
-            {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
-var jsonSource_Little_Conestoga_Streams_3 = new ol.source.Vector({
-    attributions: ' ',
-});
-jsonSource_Little_Conestoga_Streams_3.addFeatures(features_Little_Conestoga_Streams_3);
-var lyr_Little_Conestoga_Streams_3 = new ol.layer.Vector({
-                declutter: false,
-                source:jsonSource_Little_Conestoga_Streams_3, 
-                style: style_Little_Conestoga_Streams_3,
-                title: 'Little Conestoga Streams',
-                popuplayertitle: 'Little Conestoga Streams',
-                interactive: false,
-                title: '<img src="styles/legend/Little_Conestoga_Streams_3.png" /> Little Conestoga Streams'
-            });
 var format_Riparian_Forest_Buffer_4 = new ol.format.GeoJSON();
 var features_Riparian_Forest_Buffer_4 = format_Riparian_Forest_Buffer_4.readFeatures(json_Riparian_Forest_Buffer_4, 
             {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
@@ -79,6 +63,22 @@ var lyr_Riparian_Forest_Buffer_4 = new ol.layer.Vector({
     title: 'Riparian Forest Buffer<br />\
     <img src="styles/legend/Riparian_Forest_Buffer_4_0.png" /> Forested<br />\
     <img src="styles/legend/Riparian_Forest_Buffer_4_1.png" /> Unforested<br />' });
+var format_Little_Conestoga_Streams_3 = new ol.format.GeoJSON();
+var features_Little_Conestoga_Streams_3 = format_Little_Conestoga_Streams_3.readFeatures(json_Little_Conestoga_Streams_3, 
+            {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
+var jsonSource_Little_Conestoga_Streams_3 = new ol.source.Vector({
+    attributions: ' ',
+});
+jsonSource_Little_Conestoga_Streams_3.addFeatures(features_Little_Conestoga_Streams_3);
+var lyr_Little_Conestoga_Streams_3 = new ol.layer.Vector({
+                declutter: false,
+                source:jsonSource_Little_Conestoga_Streams_3, 
+                style: style_Little_Conestoga_Streams_3,
+                title: 'Little Conestoga Streams',
+                popuplayertitle: 'Little Conestoga Streams',
+                interactive: false,
+                title: '<img src="styles/legend/Little_Conestoga_Streams_3.png" /> Little Conestoga Streams'
+            });
 var format_Parcel_Level_Projects_5 = new ol.format.GeoJSON();
 var features_Parcel_Level_Projects_5 = format_Parcel_Level_Projects_5.readFeatures(json_Parcel_Level_Projects_5, 
             {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
@@ -194,7 +194,8 @@ var lyr_BMP_Survey_Points_9 = new ol.layer.Vector({
     title: 'BMP Survey Points<br />\
     <img src="styles/legend/BMP_Survey_Points_9_0.png" /> Agricultural BMPs<br />\
     <img src="styles/legend/BMP_Survey_Points_9_1.png" /> Stormwater BMPs<br />\
-    <img src="styles/legend/BMP_Survey_Points_9_2.png" /> Implemented BMPs<br />' });
+    <img src="styles/legend/BMP_Survey_Points_9_2.png" /> Implemented BMPs<br />\
+    <img src="styles/legend/BMP_Survey_Points_9_3.png" /> Planned BMPs<br />' });
 
 // Critical Recharge Area Footprint
 var lyr_critical_recharge_area_footprint = new ol.layer.Vector({
@@ -238,8 +239,8 @@ var boundariesGroup = new ol.layer.Group({
 var featuresGroup = new ol.layer.Group({
     title: 'Features',
     layers: [
-        lyr_Little_Conestoga_Streams_3,
         lyr_Riparian_Forest_Buffer_4,
+        lyr_Little_Conestoga_Streams_3,
         lyr_Parcel_Level_Projects_5,
         lyr_BMP_Survey_Points_9
     ]
