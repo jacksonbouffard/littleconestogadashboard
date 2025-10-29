@@ -1,7 +1,7 @@
 var size = 0;
 var placement = 'point';
 
-var style_Parcel_Level_Projects_5 = function(feature, resolution){
+var style_Parcel_Level_Projects = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}

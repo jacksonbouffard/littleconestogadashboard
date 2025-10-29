@@ -205,6 +205,10 @@ td video {
     position: absolute;
     left: 0;
     bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0; /* Remove margin since we're using fixed positioning */
 }
 #top-right-container {
     position: absolute;
@@ -284,18 +288,315 @@ td video {
     left: unset;
     margin-top: 8px;
     margin-left: 8px;
+    border: 2px solid #0056b3 !important;
+    border-radius: 4px;
+}
+
+/* Feature counter box */
+#feature-counter {
+    position: fixed;
+    top: 8px;
+    left: 64px; /* Moved right to create equal spacing */
+    background: rgba(255, 255, 255, 0.4); /* Semi-transparent outer background like other controls */
+    border: 2px solid #0056b3;
+    border-radius: 4px;
+    padding: 2px; /* Outer padding like other controls */
+    font-size: 13px;
+    font-family: sans-serif;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#feature-counter.sidebar-open {
+    left: 336px; /* Adjusted to maintain same offset when sidebar open */
+}
+
+.counter-content {
+    background: rgba(255, 255, 255, 0.9); /* Solid inner background */
+    padding: 10px 12px;
+    border-radius: 2px;
+}
+
+#feature-counter .counter-title {
+    font-weight: 600;
+    color: #0056b3;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+#feature-counter .counter-row {
+    margin: 4px 0;
+    color: #333;
+    font-size: 13px;
+}
+
+#feature-counter .counter-row strong {
+    color: #0056b3;
+}
+
+#feature-counter .counter-download-section {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+#feature-counter .counter-download-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    background-color: #5a9fd4;
+    color: white;
+    border: 1px solid #4a8fc4;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-weight: 500;
+    font-family: sans-serif;
+}
+
+#feature-counter .counter-download-btn:hover {
+    background-color: #4a8fc4;
+}
+
+#feature-counter .counter-download-btn:active {
+    background-color: #3a7fb4;
+}
+
+/* Download Modal */
+.download-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.download-modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.download-modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 450px;
+    padding: 0;
+}
+
+.download-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.download-modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.download-modal-close {
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    line-height: 1;
+}
+
+.download-modal-close:hover {
+    color: #333;
+}
+
+.download-modal-body {
+    padding: 24px;
+}
+
+.download-modal-body label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.download-layer-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 5px;
+    padding: 12px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+.download-checkbox-label {
+    display: flex !important;
+    align-items: center;
+    font-weight: 400 !important;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    user-select: none;
+}
+
+.download-checkbox-label:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.download-layer-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #5a9fd4;
+}
+
+.download-layer-checkbox:disabled {
+    cursor: not-allowed;
+}
+
+.download-checkbox-label span {
+    font-size: 14px;
+    color: #333;
+}
+
+.download-filename-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: sans-serif;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.download-filename-input:focus {
+    outline: none;
+    border-color: #5a9fd4;
+}
+
+.download-format-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: sans-serif;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.download-format-select:focus {
+    outline: none;
+    border-color: #5a9fd4;
+}
+
+.download-modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+.download-modal-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-family: sans-serif;
+}
+
+.download-cancel-btn {
+    background-color: #e0e0e0;
+    color: #555;
+}
+
+.download-cancel-btn:hover {
+    background-color: #d0d0d0;
+}
+
+.download-confirm-btn {
+    background-color: #5a9fd4;
+    color: white;
+}
+
+.download-confirm-btn:hover {
+    background-color: #4a8fc4;
+}
+
+.download-confirm-btn:active {
+    background-color: #3a7fb4;
 }
 
 
 /* measurement */
 .measure-control {
-	position: relative;
-    float: left;
-    top: unset !important;
-    left: unset !important;
-    margin-top: 8px;
-    margin-left: 8px;
+	position: fixed !important;
+    float: none !important;
+    top: auto !important;
+    bottom: 68px !important; /* Position above info button with 8px gap */
+    left: 8px !important;
+    margin: 0 !important;
 	display: flex;
+    z-index: 2100;
+}
+
+.splash-button-control {
+    position: fixed !important;
+    bottom: 8px !important;
+    left: 8px !important; /* Aligned with measure button */
+    z-index: 2100;
+    background: rgba(255,255,255,0.4) !important;
+    padding: 2px !important;
+    border: 2px solid #0056b3 !important;
+    border-radius: 4px !important;
+}
+
+.splash-reopen-button {
+    width: 40px !important;
+    height: 40px !important;
+    background-color: #f8f8f8 !important;
+    color: #444444 !important;
+    border: none !important;
+    border-radius: 0px !important;
+    cursor: pointer !important;
+    font-size: 20px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.splash-reopen-button:hover {
+    background-color: rgba(248, 248, 248, 0.7) !important;
 }
 
 .tooltip {
@@ -416,6 +717,8 @@ td video {
     margin-right: 8px;
 	padding: 3px;
 	background-color: rgba(255,255,255,.4)!important;
+	border: 2px solid #0056b3 !important;
+	border-radius: 4px;
 }
 
 .layer-switcher:hover{

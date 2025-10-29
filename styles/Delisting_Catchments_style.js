@@ -13,7 +13,7 @@ var style_Delisting_Catchments = function(feature, resolution){
             lineDash: null,
             lineCap: 'square',
             lineJoin: 'bevel',
-            width: 2.0
+            width: 4.0
         }),
         fill: new ol.style.Fill({
             color: 'rgba(255,127,0,0.0)'

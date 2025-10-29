@@ -1,6 +1,13 @@
 
 // Function to close splash screen
 function closeSplash() {
+  // Check if files are loaded (only if the upload system is present)
+  var enterBtn = document.getElementById('enter-dashboard-btn');
+  if (enterBtn && enterBtn.disabled) {
+    // Button is disabled, don't allow closing
+    return false;
+  }
+  
   var splashScreen = document.getElementById('splash-screen');
   var mapElement = document.getElementById('map');
   
@@ -26,6 +33,33 @@ function openSplash() {
   var mapElement = document.getElementById('map');
   
   if (splashScreen) {
+    // Check if files are already loaded in sessionStorage
+    const hasStoredFiles = sessionStorage.getItem('bmp_data') && sessionStorage.getItem('parcel_data');
+    
+    // If files are loaded, hide the upload section and enable the button
+    if (hasStoredFiles) {
+      const fileUploadSection = document.querySelector('.file-upload-section');
+      if (fileUploadSection) {
+        fileUploadSection.style.display = 'none';
+      }
+      const enterBtn = document.getElementById('enter-dashboard-btn');
+      if (enterBtn) {
+        enterBtn.disabled = false;
+      }
+      const statusDiv = document.getElementById('file-status');
+      if (statusDiv) {
+        statusDiv.className = 'file-status success';
+        statusDiv.textContent = '✓ Layer data is loaded. Click "Enter Dashboard" to continue.';
+        statusDiv.style.display = 'block';
+      }
+    } else {
+      // Show the upload section if files aren't loaded
+      const fileUploadSection = document.querySelector('.file-upload-section');
+      if (fileUploadSection) {
+        fileUploadSection.style.display = 'block';
+      }
+    }
+    
     splashScreen.style.display = 'flex';
     // Remove hidden class to trigger fade-in
     setTimeout(function() {
@@ -93,8 +127,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Inject utility bar and toggle button
   var utilityBar = document.createElement('div');
+  utilityBar.id = 'utility-bar';
   utilityBar.className = 'utility-bar collapsed';
   utilityBar.innerHTML = `
+      <div class="utility-bar-header">
+          <button id="clear-all-filters-btn" class="clear-all-filters-btn" title="Reset all filters to default">
+              Clear All Filters
+          </button>
+          <button id="zoom-to-filtered-btn" class="clear-all-filters-btn" title="Zoom map to filtered features" style="background-color: #4CAF50;">
+              Zoom to Filtered
+          </button>
+          <button id="reset-extent-btn" class="clear-all-filters-btn" title="Reset map to default extent">
+              Reset Extent
+          </button>
+      </div>
       <div class="utility-bar-section" id="utility-bar-both-filters">
           <h3>Both (Points & Parcels)</h3>
           <div class="filter-group">
@@ -251,6 +297,32 @@ document.addEventListener('DOMContentLoaded', function() {
                       <span id="priority-score-value">0+</span>
                   </div>
               </div>
+          </div>
+      </div>
+      
+      <div class="utility-bar-section" id="utility-bar-boundary-labels">
+          <h3>Boundary Labels</h3>
+          <div class="filter-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start;">
+              <label class="checkbox-label" style="white-space: nowrap;">
+                  <input type="checkbox" id="label-municipality">
+                  <span>Municipalities</span>
+              </label>
+              <label class="checkbox-label" style="white-space: nowrap;">
+                  <input type="checkbox" id="label-delisting">
+                  <span>Delisting</span>
+              </label>
+              <label class="checkbox-label" style="white-space: nowrap;">
+                  <input type="checkbox" id="label-huc12">
+                  <span>HUC12s</span>
+              </label>
+              <label class="checkbox-label" style="white-space: nowrap;">
+                  <input type="checkbox" id="label-srbc">
+                  <span>SRBC Zones</span>
+              </label>
+              <label class="checkbox-label" style="white-space: nowrap;">
+                  <input type="checkbox" id="label-smallsheds">
+                  <span>Smallsheds</span>
+              </label>
           </div>
       </div>
   `;
@@ -787,8 +859,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Turn layer on if any municipalities are selected, off if none
         if (selectedMunicipalities.length > 0) {
+          // Store that filter activated the layer
+          municipalityBoundariesLayer.set('filterActivated', true);
           municipalityBoundariesLayer.setVisible(true);
-          console.log('Municipality Boundaries layer turned ON, filtering to:', selectedMunicipalities);
+          console.log('Municipality Boundaries layer turned ON by filter, filtering to:', selectedMunicipalities);
           
           // Filter the layer features
           var source = municipalityBoundariesLayer.getSource();
@@ -813,24 +887,365 @@ document.addEventListener('DOMContentLoaded', function() {
           
           source.changed();
         } else {
-          // No filters selected - only hide if not manually toggled on
-          // Check current visibility and apply filter-free rendering
-          var currentVisibility = municipalityBoundariesLayer.getVisible();
-          if (currentVisibility) {
-            // Layer is manually on, show all features
-            var source = municipalityBoundariesLayer.getSource();
-            if (source) {
-              source.getFeatures().forEach(function(feature) {
-                feature.setStyle(null); // Show all features
-              });
-              source.changed();
-            }
+          // No filters selected
+          console.log('No municipality filters active');
+          
+          // If the layer was activated by filter, turn it off now
+          var wasFilterActivated = municipalityBoundariesLayer.get('filterActivated');
+          if (wasFilterActivated) {
+            console.log('Turning off municipality layer (was activated by filter)');
+            municipalityBoundariesLayer.setVisible(false);
+            municipalityBoundariesLayer.set('filterActivated', false);
+          }
+          
+          // Show all features (in case layer is manually turned on)
+          var source = municipalityBoundariesLayer.getSource();
+          if (source) {
+            source.getFeatures().forEach(function(feature) {
+              feature.setStyle(null); // Show all features
+            });
+            source.changed();
           }
         }
       } else {
         console.log('Municipality Boundaries layer not found!');
       }
     }
+    
+    // Update feature counter after filters are applied
+    if (typeof window.updateFeatureCounts === 'function') {
+      setTimeout(window.updateFeatureCounts, 100);
+    }
+    
+    // Auto-zoom disabled for now - causes basemap tile issues
+    // Zoom to filtered features (with longer delay to ensure styles are updated)
+    // setTimeout(function() {
+    //   zoomToFilteredFeatures();
+    // }, 300);
+    
+    // Update clear filters button state
+    console.log('About to call updateClearFiltersButtonState');
+    if (typeof updateClearFiltersButtonState === 'function') {
+      updateClearFiltersButtonState();
+    } else {
+      console.log('updateClearFiltersButtonState is not defined yet');
+    }
+  }
+  
+  // Function to check if any filters are active
+  function updateClearFiltersButtonState() {
+    console.log('=== updateClearFiltersButtonState called ===');
+    var clearBtn = document.getElementById('clear-all-filters-btn');
+    if (!clearBtn) {
+      console.log('Clear button not found');
+      return;
+    }
+    console.log('Clear button found:', clearBtn);
+    
+    var filtersActive = false;
+    
+    // Check sliders
+    var swSlider = document.getElementById('filter-sw-score');
+    var prioritySlider = document.getElementById('filter-priority-score');
+    if (swSlider && prioritySlider) {
+      var swScore = parseFloat(swSlider.value);
+      var priorityScore = parseFloat(prioritySlider.value);
+      if (swScore > 0 || priorityScore > 0) {
+        filtersActive = true;
+        console.log('Filters active: sliders', swScore, priorityScore);
+      }
+    }
+    
+    // Check toggles
+    var rechargeToggle = document.getElementById('critical-recharge-toggle');
+    var photosToggle = document.getElementById('photos-toggle');
+    if (rechargeToggle && photosToggle) {
+      if (rechargeToggle.checked || photosToggle.checked) {
+        filtersActive = true;
+        console.log('Filters active: toggles');
+      }
+    }
+    
+    // Check if any conservation land is selected (default is none, so any selection = filter active)
+    var conservationCheckboxes = document.querySelectorAll('#filter-conservation-land input[type="checkbox"]');
+    if (conservationCheckboxes.length > 0) {
+      var conservationChecked = Array.from(conservationCheckboxes).filter(cb => cb.checked).length;
+      if (conservationChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: conservation land');
+      }
+    }
+    
+    // Check if any municipalities are selected (default is none, so any selection = filter active)
+    var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]');
+    console.log('Municipality checkboxes found:', municipalityCheckboxes.length);
+    if (municipalityCheckboxes.length > 0) {
+      var municipalityChecked = Array.from(municipalityCheckboxes).filter(cb => cb.checked).length;
+      console.log('Municipality checked:', municipalityChecked);
+      if (municipalityChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: municipalities');
+      }
+    }
+    
+    // Check if any priority subwatersheds are selected (default is none, so any selection = filter active)
+    var subwatershedCheckboxes = document.querySelectorAll('#filter-priority-subwatershed input[type="checkbox"]');
+    if (subwatershedCheckboxes.length > 0) {
+      var subwatershedChecked = Array.from(subwatershedCheckboxes).filter(cb => cb.checked).length;
+      if (subwatershedChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: subwatersheds');
+      }
+    }
+    
+    // Check if any implementation statuses are selected (default is none, so any selection = filter active)
+    var implementationCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]');
+    if (implementationCheckboxes.length > 0) {
+      var implementationChecked = Array.from(implementationCheckboxes).filter(cb => cb.checked).length;
+      if (implementationChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: implementation');
+      }
+    }
+    
+    // Check if any SRBC areas are selected (default is none, so any selection = filter active)
+    var srbcCheckboxes = document.querySelectorAll('#filter-srbc-focus input[type="checkbox"]');
+    if (srbcCheckboxes.length > 0) {
+      var srbcChecked = Array.from(srbcCheckboxes).filter(cb => cb.checked).length;
+      if (srbcChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: SRBC');
+      }
+    }
+    
+    // Check if any project types are selected (default is none, so any selection = filter active)
+    var projectTypeCheckboxes = document.querySelectorAll('#filter-project-type input[type="checkbox"]');
+    if (projectTypeCheckboxes.length > 0) {
+      var projectTypeChecked = Array.from(projectTypeCheckboxes).filter(cb => cb.checked).length;
+      if (projectTypeChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: project type');
+      }
+    }
+    
+    // Check if any BMP categories are selected (default is none, so any selection = filter active)
+    var bmpCategoryCheckboxes = document.querySelectorAll('#filter-bmp-category input[type="checkbox"]');
+    if (bmpCategoryCheckboxes.length > 0) {
+      var bmpCategoryChecked = Array.from(bmpCategoryCheckboxes).filter(cb => cb.checked).length;
+      if (bmpCategoryChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: BMP category');
+      }
+    }
+    
+    // Update button state
+    console.log('Filters active:', filtersActive);
+    if (filtersActive) {
+      clearBtn.classList.remove('disabled');
+      clearBtn.disabled = false;
+      console.log('Button enabled');
+    } else {
+      clearBtn.classList.add('disabled');
+      clearBtn.disabled = true;
+      console.log('Button disabled');
+    }
+  }
+  
+  // Function to zoom to the extent of filtered features
+  function zoomToFilteredFeatures() {
+    console.log('=== zoomToFilteredFeatures called ===');
+    
+    // Use the global map instance
+    var actualMap = window.globalMap;
+    
+    if (!actualMap) {
+      console.error('Global map not found!');
+      return;
+    }
+    
+    console.log('Using global map:', actualMap);
+    
+    var extent = ol.extent.createEmpty();
+    var hasVisibleFeatures = false;
+    var visibleCount = 0;
+    var hiddenCount = 0;
+    
+    // Get the layers from the same location as applyFilters does
+    var layersList = actualMap.getLayers().getArray();
+    console.log('layersList length:', layersList.length);
+    var featuresGroup = layersList[2];
+    console.log('featuresGroup:', featuresGroup);
+    var bmpLayer = null;
+    var parcelLayer = null;
+    
+    if (featuresGroup) {
+      var layers = featuresGroup.getLayers ? featuresGroup.getLayers().getArray() : [];
+      console.log('layers in group:', layers.length);
+      layers.forEach(function(layer) {
+        var title = layer.get('title');
+        console.log('Checking layer with title:', title);
+        if (title && title.startsWith('BMP Survey Points')) {
+          bmpLayer = layer;
+          console.log('Found BMP layer');
+        } else if (title && title.startsWith('Parcel Level Projects')) {
+          parcelLayer = layer;
+          console.log('Found Parcel layer');
+        }
+      });
+    }
+    
+    if (bmpLayer) {
+      console.log('BMP layer found, getting source');
+      var bmpSource = bmpLayer.getSource();
+      console.log('BMP source:', bmpSource);
+      if (bmpSource) {
+        var features = bmpSource.getFeatures();
+        console.log('Total BMP features:', features.length);
+        features.forEach(function(feature) {
+          var style = feature.getStyle();
+          // Feature is visible if style is null (default style) or undefined
+          // Feature is hidden if style is an empty ol.style.Style({})
+          if (style === null || style === undefined) {
+            var geom = feature.getGeometry();
+            if (geom) {
+              var featureExtent = geom.getExtent();
+              console.log('Adding BMP feature extent:', featureExtent);
+              ol.extent.extend(extent, featureExtent);
+              hasVisibleFeatures = true;
+              visibleCount++;
+            }
+          } else {
+            hiddenCount++;
+          }
+        });
+        console.log('BMP - Visible:', visibleCount, 'Hidden:', hiddenCount);
+      }
+    } else {
+      console.log('BMP layer not found');
+    }
+    
+    if (parcelLayer) {
+      console.log('Parcel layer found, getting source');
+      var parcelSource = parcelLayer.getSource();
+      console.log('Parcel source:', parcelSource);
+      if (parcelSource) {
+        var parcelVisibleCount = 0;
+        var parcelHiddenCount = 0;
+        var features = parcelSource.getFeatures();
+        console.log('Total Parcel features:', features.length);
+        features.forEach(function(feature) {
+          var style = feature.getStyle();
+          // Feature is visible if style is null (default style) or undefined
+          // Feature is hidden if style is an empty ol.style.Style({})
+          if (style === null || style === undefined) {
+            var geom = feature.getGeometry();
+            if (geom) {
+              var featureExtent = geom.getExtent();
+              ol.extent.extend(extent, featureExtent);
+              hasVisibleFeatures = true;
+              visibleCount++;
+              parcelVisibleCount++;
+            }
+          } else {
+            hiddenCount++;
+            parcelHiddenCount++;
+          }
+        });
+        console.log('Parcel - Visible:', parcelVisibleCount, 'Hidden:', parcelHiddenCount);
+        console.log('Total visible:', visibleCount, 'Total hidden:', hiddenCount);
+      }
+    } else {
+      console.log('Parcel layer not found');
+    }
+    
+    console.log('Final extent:', extent);
+    console.log('hasVisibleFeatures:', hasVisibleFeatures);
+    console.log('extent isEmpty:', ol.extent.isEmpty(extent));
+    
+    // If we have visible features, zoom to their extent with padding
+    if (hasVisibleFeatures && !ol.extent.isEmpty(extent)) {
+      // Validate extent is reasonable
+      var extentWidth = ol.extent.getWidth(extent);
+      var extentHeight = ol.extent.getHeight(extent);
+      console.log('Extent dimensions:', extentWidth, 'x', extentHeight);
+      
+      if (extentWidth > 0 && extentHeight > 0) {
+        console.log('Attempting to zoom to extent');
+        
+        // Calculate target zoom and center
+        var view = actualMap.getView();
+        var currentZoomRaw = view.getZoom();
+        console.log('Raw current zoom:', currentZoomRaw);
+        
+        // Handle case where getZoom returns undefined or NaN
+        var currentZoom = currentZoomRaw;
+        if (isNaN(currentZoom) || currentZoom === undefined) {
+          console.log('Current zoom is NaN or undefined, using resolution to calculate');
+          var currentResolution = view.getResolution();
+          console.log('Current resolution:', currentResolution);
+          currentZoom = view.getZoomForResolution(currentResolution);
+          console.log('Calculated current zoom from resolution:', currentZoom);
+        }
+        currentZoom = Math.round(currentZoom);
+        
+        var center = ol.extent.getCenter(extent);
+        
+        // Calculate target zoom level
+        var mapSize = actualMap.getSize();
+        var resolution = view.getResolutionForExtent(extent, mapSize);
+        var targetZoom = Math.round(view.getZoomForResolution(resolution) - 0.5);
+        targetZoom = Math.max(10, Math.min(17, targetZoom));
+        
+        console.log('Current zoom:', currentZoom, 'Target zoom:', targetZoom, 'Center:', center);
+        
+        // If no zoom needed, just pan to center
+        if (Math.abs(targetZoom - currentZoom) < 0.5) {
+          console.log('Already at target zoom level, just centering');
+          view.animate({
+            center: center,
+            duration: 600,
+            easing: ol.easing.easeInOut
+          });
+          return;
+        }
+        
+        // Single smooth animation directly to target zoom and center
+        // This is smoother than stepping through each zoom level
+        view.animate({
+          center: center,
+          zoom: targetZoom,
+          duration: 1500, // Longer duration for smooth zoom
+          easing: ol.easing.easeInOut // Smooth acceleration and deceleration
+        });
+        
+        console.log('Starting smooth zoom animation to', visibleCount, 'filtered features');
+      } else {
+        console.log('Invalid extent dimensions');
+      }
+    } else {
+      console.log('No visible features to zoom to. hasVisibleFeatures:', hasVisibleFeatures, 'isEmpty:', ol.extent.isEmpty(extent));
+    }
+  }
+  
+  // Function to reset map to default extent
+  function resetMapExtent() {
+    var activeMap = window.globalMap;
+    if (!activeMap) {
+      console.error('Global map not found for reset extent');
+      return;
+    }
+    
+    // Get the HUC12 boundaries layer extent (the default initial view)
+    var huc12Extent = jsonSource_HUC12_Boundaries_6.getExtent();
+    
+    // Animate back to the default extent
+    activeMap.getView().fit(huc12Extent, {
+      size: activeMap.getSize(),
+      duration: 1500, // Match the zoom animation duration
+      easing: ol.easing.easeInOut
+    });
+    
+    console.log('Resetting map to default extent');
   }
   
   // Add event listeners for sliders
@@ -923,7 +1338,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add event listeners for Municipality checkboxes
   var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]');
   municipalityCheckboxes.forEach(function(checkbox) {
-    checkbox.addEventListener('change', applyFilters);
+    checkbox.addEventListener('change', function() {
+      applyFilters();
+      // Update municipality labels if they're enabled
+      var labelCheckbox = document.getElementById('label-municipality');
+      if (labelCheckbox && labelCheckbox.checked) {
+        updateBoundaryLabels('municipality', true);
+      }
+    });
   });
   
   // Add collapsible functionality for Priority Subwatershed
@@ -971,6 +1393,111 @@ document.addEventListener('DOMContentLoaded', function() {
     srbcGroup.classList.toggle('collapsed');
     collapseIconSrbc.classList.toggle('collapsed');
   });
+  
+  // Clear All Filters button event listener
+  var clearFiltersBtn = document.getElementById('clear-all-filters-btn');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', function() {
+      console.log('Clear All Filters button clicked');
+      
+      // Reset sliders to minimum values
+      var swSlider = document.getElementById('filter-sw-score');
+      var prioritySlider = document.getElementById('filter-priority-score');
+      if (swSlider) {
+        swSlider.value = 0;
+        var swValue = document.getElementById('slider-value-sw');
+        if (swValue) swValue.textContent = '0';
+      }
+      if (prioritySlider) {
+        prioritySlider.value = 0;
+        var priorityValue = document.getElementById('slider-value-priority');
+        if (priorityValue) priorityValue.textContent = '0';
+      }
+      
+      // Turn off toggles
+      var rechargeToggle = document.getElementById('critical-recharge-toggle');
+      var photosToggle = document.getElementById('photos-toggle');
+      if (rechargeToggle) {
+        rechargeToggle.checked = false;
+        var rechargeLabel = document.getElementById('recharge-label');
+        if (rechargeLabel) rechargeLabel.textContent = 'OFF';
+      }
+      if (photosToggle) {
+        photosToggle.checked = false;
+        var photosLabel = document.getElementById('photos-label');
+        if (photosLabel) photosLabel.textContent = 'OFF';
+      }
+      
+      // Uncheck all conservation land checkboxes (default = none checked)
+      var conservationCheckboxes = document.querySelectorAll('#filter-conservation-land input[type="checkbox"]');
+      conservationCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all municipality checkboxes (default = none checked, shows all)
+      var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]');
+      municipalityCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all priority subwatershed checkboxes (default = none checked, shows all)
+      var subwatershedCheckboxes = document.querySelectorAll('#filter-priority-subwatershed input[type="checkbox"]');
+      subwatershedCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all implementation status checkboxes (default = none checked, shows all)
+      var implementationCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]');
+      implementationCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all SRBC focus area checkboxes (default = none checked, shows all)
+      var srbcCheckboxes = document.querySelectorAll('#filter-srbc-focus input[type="checkbox"]');
+      srbcCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all project type checkboxes (default = none checked, shows all)
+      var projectTypeCheckboxes = document.querySelectorAll('#filter-project-type input[type="checkbox"]');
+      projectTypeCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all BMP category checkboxes (default = none checked, shows all)
+      var bmpCategoryCheckboxes = document.querySelectorAll('#filter-bmp-category input[type="checkbox"]');
+      bmpCategoryCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Reapply filters to show all features
+      console.log('Calling applyFilters after clearing');
+      applyFilters();
+    });
+    
+    // Initialize button state
+    setTimeout(function() {
+      updateClearFiltersButtonState();
+    }, 500);
+  }
+  
+  // Add zoom to filtered button event listener
+  var zoomToFilteredBtn = document.getElementById('zoom-to-filtered-btn');
+  if (zoomToFilteredBtn) {
+    zoomToFilteredBtn.addEventListener('click', function() {
+      console.log('Zoom to filtered button clicked');
+      zoomToFilteredFeatures();
+    });
+  }
+  
+  // Add reset extent button event listener
+  var resetExtentBtn = document.getElementById('reset-extent-btn');
+  if (resetExtentBtn) {
+    resetExtentBtn.addEventListener('click', function() {
+      console.log('Reset extent button clicked');
+      resetMapExtent();
+    });
+  }
 
   // Add collapsible functionality for Conservation Land
   var collapsibleLabelConservation = document.querySelector('.collapsible-label-conservation');
@@ -990,6 +1517,260 @@ document.addEventListener('DOMContentLoaded', function() {
   collapsibleLabelMunicipality.addEventListener('click', function() {
     municipalityGroup.classList.toggle('collapsed');
     collapseIconMunicipality.classList.toggle('collapsed');
+  });
+
+  // Boundary Labels Configuration
+  var boundaryLabelConfig = {
+    'municipality': {
+      layerMatch: 'Municipality Boundaries',
+      field: 'MUNICIPAL_NAME',
+      layer: null,
+      labelLayer: null
+    },
+    'huc12': {
+      layerMatch: 'HUC12 Boundaries',
+      field: 'name',
+      layer: null,
+      labelLayer: null
+    },
+    'delisting': {
+      layerMatch: 'Delisting Catchments',
+      field: 'NAME',
+      layer: null,
+      labelLayer: null
+    },
+    'srbc': {
+      layerMatch: 'SRBC Focus Areas',
+      field: 'FocusArea',
+      layer: null,
+      labelLayer: null
+    },
+    'smallsheds': {
+      layerMatch: 'Smallsheds',
+      field: 'NAME',
+      layer: null,
+      labelLayer: null
+    }
+  };
+
+  // Find and store references to boundary layers
+  function initBoundaryLayers() {
+    window.globalMap.getLayers().forEach(function(layer) {
+      if (layer instanceof ol.layer.Group) {
+        layer.getLayers().forEach(function(subLayer) {
+          var title = subLayer.get('title');
+          if (!title) return;
+          
+          // Check each config entry
+          for (var key in boundaryLabelConfig) {
+            var config = boundaryLabelConfig[key];
+            if (title.indexOf(config.layerMatch) !== -1) {
+              config.layer = subLayer;
+            }
+          }
+        });
+      }
+    });
+    
+    // Create dedicated label layers for each boundary type (these will render on top)
+    for (var key in boundaryLabelConfig) {
+      var config = boundaryLabelConfig[key];
+      if (config.layer) {
+        var labelLayer = new ol.layer.Vector({
+          source: new ol.source.Vector(),
+          style: function(feature) {
+            var labelText = feature.get('labelText');
+            return new ol.style.Style({
+              text: new ol.style.Text({
+                text: labelText,
+                font: 'bold 14px Arial,sans-serif',
+                fill: new ol.style.Fill({
+                  color: '#000'
+                }),
+                stroke: new ol.style.Stroke({
+                  color: '#fff',
+                  width: 4
+                }),
+                overflow: true
+              })
+            });
+          },
+          zIndex: 1000
+        });
+        config.labelLayer = labelLayer;
+        window.globalMap.addLayer(labelLayer);
+        
+        // Add visibility listener to base layer
+        (function(configKey, baseLayer, labelLyr) {
+          baseLayer.on('change:visible', function() {
+            var isVisible = baseLayer.getVisible();
+            var checkboxId = 'label-' + configKey;
+            var checkbox = document.getElementById(checkboxId);
+            
+            // If base layer is hidden, hide the label layer (but keep checkbox state)
+            // If base layer is shown and checkbox is checked, show the label layer
+            if (!isVisible) {
+              labelLyr.setVisible(false);
+            } else if (checkbox && checkbox.checked) {
+              labelLyr.setVisible(true);
+            }
+          });
+        })(key, config.layer, labelLayer);
+      }
+    }
+  }
+
+  // Initialize boundary layers
+  setTimeout(function() {
+    initBoundaryLayers();
+  }, 500);
+
+  // Function to update boundary labels
+  function updateBoundaryLabels(configKey, enabled) {
+    var config = boundaryLabelConfig[configKey];
+    if (!config || !config.layer || !config.labelLayer) return;
+    
+    var targetLayer = config.layer;
+    var labelLayer = config.labelLayer;
+    var labelSource = labelLayer.getSource();
+    
+    if (enabled) {
+      // If the base layer is off, turn it on
+      if (!targetLayer.getVisible()) {
+        targetLayer.setVisible(true);
+      }
+      
+      // Clear any existing labels
+      labelSource.clear();
+      
+      console.log('Creating labels for:', configKey);
+      
+      // Get active municipality filters if this is the municipality layer
+      var activeMunicipalityFilter = [];
+      if (configKey === 'municipality') {
+        var municipalityCheckboxes = document.querySelectorAll('#filter-municipality input[type="checkbox"]:checked');
+        municipalityCheckboxes.forEach(function(checkbox) {
+          activeMunicipalityFilter.push(checkbox.value);
+        });
+        if (activeMunicipalityFilter.length > 0) {
+          console.log('Filtering municipality labels to:', activeMunicipalityFilter);
+        }
+      }
+      
+      // Track unique labels to avoid duplicates - group by label text
+      var labelGroups = {};
+      
+      // Get features from the base layer and group by label text
+      var features = targetLayer.getSource().getFeatures();
+      console.log('Total features found:', features.length);
+      
+      features.forEach(function(feature) {
+        var labelText = feature.get(config.field);
+        if (labelText) {
+          // If municipality filter is active, only include filtered municipalities
+          if (configKey === 'municipality' && activeMunicipalityFilter.length > 0) {
+            if (activeMunicipalityFilter.indexOf(labelText) === -1) {
+              return; // Skip this feature
+            }
+          }
+          
+          if (!labelGroups[labelText]) {
+            labelGroups[labelText] = [];
+          }
+          labelGroups[labelText].push(feature);
+        }
+      });
+      
+      console.log('Unique label groups:', Object.keys(labelGroups).length);
+      console.log('Label groups:', Object.keys(labelGroups));
+      
+      // For each unique label, find the largest geometry (main polygon) to place the label
+      for (var labelText in labelGroups) {
+        var groupFeatures = labelGroups[labelText];
+        console.log('Label "' + labelText + '" has', groupFeatures.length, 'features');
+        
+        // Find the feature with the largest area/extent
+        var largestFeature = groupFeatures[0];
+        var largestArea = 0;
+        
+        groupFeatures.forEach(function(feature) {
+          var geom = feature.getGeometry();
+          var extent = geom.getExtent();
+          var area = (extent[2] - extent[0]) * (extent[3] - extent[1]);
+          if (area > largestArea) {
+            largestArea = area;
+            largestFeature = feature;
+          }
+        });
+        
+        console.log('Using largest feature for "' + labelText + '", area:', largestArea);
+        
+        // Use the largest feature's geometry - but use CENTROID to avoid duplicate labels on MultiPolygon
+        var geom = largestFeature.getGeometry();
+        
+        // Get the centroid/center of the geometry to place a single label
+        var extent = geom.getExtent();
+        var centerX = (extent[0] + extent[2]) / 2;
+        var centerY = (extent[1] + extent[3]) / 2;
+        var centerPoint = new ol.geom.Point([centerX, centerY]);
+        
+        // Add line breaks for long labels (split at ~20 characters, looking for spaces)
+        var wrappedText = labelText;
+        if (labelText.length > 20) {
+          var words = labelText.split(' ');
+          var lines = [];
+          var currentLine = '';
+          
+          words.forEach(function(word) {
+            if ((currentLine + ' ' + word).length <= 20) {
+              currentLine = currentLine ? currentLine + ' ' + word : word;
+            } else {
+              if (currentLine) lines.push(currentLine);
+              currentLine = word;
+            }
+          });
+          if (currentLine) lines.push(currentLine);
+          
+          wrappedText = lines.join('\n');
+        }
+        
+        var labelFeature = new ol.Feature({
+          geometry: centerPoint,
+          labelText: wrappedText
+        });
+        labelSource.addFeature(labelFeature);
+      }
+      
+      console.log('Total labels added:', labelSource.getFeatures().length);
+      
+      // Show the label layer (base layer is now guaranteed to be visible)
+      labelLayer.setVisible(true);
+    } else {
+      // Hide the label layer only (don't touch base layer)
+      labelLayer.setVisible(false);
+      labelSource.clear();
+    }
+  }
+
+  // Add event listeners for boundary label checkboxes
+  document.getElementById('label-municipality').addEventListener('change', function() {
+    updateBoundaryLabels('municipality', this.checked);
+  });
+
+  document.getElementById('label-delisting').addEventListener('change', function() {
+    updateBoundaryLabels('delisting', this.checked);
+  });
+
+  document.getElementById('label-huc12').addEventListener('change', function() {
+    updateBoundaryLabels('huc12', this.checked);
+  });
+
+  document.getElementById('label-srbc').addEventListener('change', function() {
+    updateBoundaryLabels('srbc', this.checked);
+  });
+
+  document.getElementById('label-smallsheds').addEventListener('change', function() {
+    updateBoundaryLabels('smallsheds', this.checked);
   });
 
   // Add mouse wheel scroll support for all checkbox groups
@@ -1017,7 +1798,7 @@ document.addEventListener('DOMContentLoaded', function() {
   utilityBarToggleContainer.className = 'ol-unselectable ol-control utility-bar-toggle-control';
   utilityBarToggleContainer.style.position = 'fixed';
   utilityBarToggleContainer.style.left = '8px';
-  utilityBarToggleContainer.style.top = '153px';
+  utilityBarToggleContainer.style.top = '100px'; // Position below zoom controls with equal gap
   utilityBarToggleContainer.style.zIndex = '2100';
   utilityBarToggleContainer.style.background = 'rgba(255,255,255,0.4)';
   utilityBarToggleContainer.style.padding = '2px';
@@ -1040,6 +1821,14 @@ document.addEventListener('DOMContentLoaded', function() {
   utilityBarToggle.onclick = function() {
       utilityBar.classList.remove('collapsed');
       utilityBarToggleContainer.style.display = 'none';
+      
+      // Move feature counter when sidebar opens
+      var featureCounter = document.getElementById('feature-counter');
+      if (featureCounter) {
+          featureCounter.classList.add('sidebar-open');
+          console.log('Sidebar opened, feature counter moved right');
+      }
+      
       // Add close button to body (not sidebar) if not present
       if (!document.querySelector('.utility-bar-close')) {
         var utilityBarClose = document.createElement('div');
@@ -1050,6 +1839,13 @@ document.addEventListener('DOMContentLoaded', function() {
           utilityBar.classList.add('collapsed');
           utilityBarToggleContainer.style.display = '';
           utilityBarClose.remove();
+          
+          // Move feature counter back when sidebar closes
+          var featureCounter = document.getElementById('feature-counter');
+          if (featureCounter) {
+              featureCounter.classList.remove('sidebar-open');
+              console.log('Sidebar closed, feature counter moved left');
+          }
         };
         document.body.appendChild(utilityBarClose);
       }
@@ -1080,6 +1876,9 @@ var map = new ol.Map({
             units: 'm'})
     })
 });
+
+// Make map globally accessible
+window.globalMap = map;
 
 //initial view - fit to HUC12 Boundaries layer extent
 var huc12Extent = jsonSource_HUC12_Boundaries_6.getExtent();
@@ -1128,6 +1927,670 @@ map.getView().setProperties({constrainResolution: true});
     
     splashButtonContainer.appendChild(splashButton);
     document.getElementById('bottom-left-container').appendChild(splashButtonContainer);
+
+    // Create feature counter box
+    var featureCounter = document.createElement('div');
+    featureCounter.id = 'feature-counter';
+    featureCounter.innerHTML = '<div class="counter-content">' +
+        '<div class="counter-title">Feature Counter</div>' +
+        '<div id="bmp-counter" class="counter-row"></div>' +
+        '<div id="parcel-counter" class="counter-row"></div>' +
+        '<div class="counter-download-section">' +
+        '<button id="download-filtered-btn" class="counter-download-btn" title="Download filtered features">⬇ Download Filtered Content</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(featureCounter);
+    
+    // Create download modal
+    var downloadModal = document.createElement('div');
+    downloadModal.id = 'download-modal';
+    downloadModal.className = 'download-modal hidden';
+    downloadModal.innerHTML = '<div class="download-modal-content">' +
+        '<div class="download-modal-header">' +
+        '<h3>Download Filtered Content</h3>' +
+        '<button id="download-modal-close" class="download-modal-close">×</button>' +
+        '</div>' +
+        '<div class="download-modal-body">' +
+        '<label>Include Layers:</label>' +
+        '<div class="download-layer-checkboxes">' +
+        '<label class="download-checkbox-label">' +
+        '<input type="checkbox" id="include-bmp" class="download-layer-checkbox" checked>' +
+        '<span>BMP Survey Points</span>' +
+        '</label>' +
+        '<label class="download-checkbox-label">' +
+        '<input type="checkbox" id="include-parcel" class="download-layer-checkbox" checked>' +
+        '<span>Parcel Level Projects</span>' +
+        '</label>' +
+        '</div>' +
+        '<label for="download-filename" style="margin-top: 15px;">File Name:</label>' +
+        '<input type="text" id="download-filename" class="download-filename-input" value="little_conestoga_filtered_data_' + new Date().toISOString().slice(0,10) + '">' +
+        '<label for="download-format" style="margin-top: 15px;">Format:</label>' +
+        '<select id="download-format" class="download-format-select">' +
+        '<option value="excel">Excel Spreadsheet (.xlsx)</option>' +
+        '<option value="csv">CSV - Comma Separated Values</option>' +
+        '<option value="geojson">GeoJSON - Geographic JSON</option>' +
+        '</select>' +
+        '<div class="download-help-section" style="margin-top: 20px; padding: 12px; background-color: #f0f0f0; border-radius: 4px; font-size: 13px;">' +
+        '<strong>Importing Data to ArcGIS Pro:</strong>' +
+        '<ul style="margin: 8px 0 0 20px; padding: 0;">' +
+        '<li><a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/conversion/excel-to-table.htm" target="_blank" style="color: #0078d4; text-decoration: none;">Excel to Table</a></li>' +
+        '<li><a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/conversion/json-to-features.htm" target="_blank" style="color: #0078d4; text-decoration: none;">JSON to Features</a></li>' +
+        '<li><a href="https://pro.arcgis.com/en/pro-app/latest/tool-reference/data-management/xy-table-to-point.htm" target="_blank" style="color: #0078d4; text-decoration: none;">XY Table to Point</a></li>' +
+        '</ul>' +
+        '</div>' +
+        '<div class="download-modal-footer">' +
+        '<button id="download-cancel-btn" class="download-modal-btn download-cancel-btn">Cancel</button>' +
+        '<button id="download-confirm-btn" class="download-modal-btn download-confirm-btn">Download</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(downloadModal);
+    
+    // Add download button event listener
+    document.getElementById('download-filtered-btn').addEventListener('click', function() {
+        openDownloadModal();
+    });
+    
+    // Modal event listeners
+    document.getElementById('download-modal-close').addEventListener('click', function() {
+        closeDownloadModal();
+    });
+    
+    document.getElementById('download-cancel-btn').addEventListener('click', function() {
+        closeDownloadModal();
+    });
+    
+    document.getElementById('download-confirm-btn').addEventListener('click', function() {
+        var filename = document.getElementById('download-filename').value.trim();
+        var format = document.getElementById('download-format').value;
+        var includeBMP = document.getElementById('include-bmp').checked;
+        var includeParcel = document.getElementById('include-parcel').checked;
+        
+        if (!filename) {
+            alert('Please enter a file name.');
+            return;
+        }
+        
+        if (!includeBMP && !includeParcel) {
+            alert('Please select at least one layer to export.');
+            return;
+        }
+        
+        closeDownloadModal();
+        downloadFilteredData(format, filename, includeBMP, includeParcel);
+    });
+    
+    // Close modal when clicking outside
+    downloadModal.addEventListener('click', function(e) {
+        if (e.target === downloadModal) {
+            closeDownloadModal();
+        }
+    });
+    
+    // Function to open download modal
+    function openDownloadModal() {
+        // Update default filename with current date
+        var defaultFilename = 'little_conestoga_filtered_data_' + new Date().toISOString().slice(0,10);
+        document.getElementById('download-filename').value = defaultFilename;
+        
+        // Check which layers are currently visible and have features
+        var bmpLayer = null;
+        var parcelLayer = null;
+        
+        map.getLayers().forEach(function(layer) {
+            if (layer instanceof ol.layer.Group) {
+                layer.getLayers().forEach(function(subLayer) {
+                    var title = subLayer.get('title');
+                    if (title) {
+                        if (title.indexOf('BMP Survey Points') === 0) {
+                            bmpLayer = subLayer;
+                        } else if (title.indexOf('Parcel Level Projects') === 0) {
+                            parcelLayer = subLayer;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Set checkbox states based on layer visibility and feature availability
+        var bmpCheckbox = document.getElementById('include-bmp');
+        var parcelCheckbox = document.getElementById('include-parcel');
+        
+        var bmpHasVisibleFeatures = false;
+        var parcelHasVisibleFeatures = false;
+        
+        if (bmpLayer && bmpLayer.getVisible()) {
+            var bmpFeatures = bmpLayer.getSource().getFeatures();
+            bmpHasVisibleFeatures = bmpFeatures.some(function(feature) {
+                var style = feature.getStyle();
+                return style === null || style === undefined;
+            });
+        }
+        
+        if (parcelLayer && parcelLayer.getVisible()) {
+            var parcelFeatures = parcelLayer.getSource().getFeatures();
+            parcelHasVisibleFeatures = parcelFeatures.some(function(feature) {
+                var style = feature.getStyle();
+                return style === null || style === undefined;
+            });
+        }
+        
+        // Enable/disable and check/uncheck based on availability
+        bmpCheckbox.checked = bmpHasVisibleFeatures;
+        bmpCheckbox.disabled = !bmpHasVisibleFeatures;
+        
+        parcelCheckbox.checked = parcelHasVisibleFeatures;
+        parcelCheckbox.disabled = !parcelHasVisibleFeatures;
+        
+        document.getElementById('download-modal').classList.remove('hidden');
+    }
+    
+    // Function to close download modal
+    function closeDownloadModal() {
+        document.getElementById('download-modal').classList.add('hidden');
+    }
+
+    // Function to update feature counts - make it global so applyFilters can call it
+    window.updateFeatureCounts = function() {
+        console.log('updateFeatureCounts called');
+        
+        // Get BMP points layer
+        var bmpLayer = null;
+        var parcelLayer = null;
+        
+        // Check if map exists
+        if (!map) {
+            console.log('Map not ready yet');
+            return;
+        }
+        
+        console.log('Map layers count:', map.getLayers().getLength());
+        
+        map.getLayers().forEach(function(layer) {
+            console.log('Checking layer type:', layer.constructor.name, 'Title:', layer.get('title'));
+            
+            if (layer instanceof ol.layer.Group) {
+                console.log('Found group:', layer.get('title'), 'with', layer.getLayers().getLength(), 'layers');
+                layer.getLayers().forEach(function(subLayer) {
+                    var title = subLayer.get('title');
+                    console.log('  - Found layer:', title);
+                    // Check if title starts with or includes the layer name (since titles have HTML)
+                    if (title && title.indexOf('BMP Survey Points') === 0) {
+                        bmpLayer = subLayer;
+                        console.log('Found BMP layer!');
+                    } else if (title && title.indexOf('Parcel Level Projects') === 0) {
+                        parcelLayer = subLayer;
+                        console.log('Found Parcel layer!');
+                    }
+                });
+            } else {
+                // Maybe the layers are not in a group?
+                var title = layer.get('title');
+                if (title && title.indexOf('BMP Survey Points') === 0) {
+                    bmpLayer = layer;
+                    console.log('Found BMP layer directly!');
+                } else if (title && title.indexOf('Parcel Level Projects') === 0) {
+                    parcelLayer = layer;
+                    console.log('Found Parcel layer directly!');
+                }
+            }
+        });
+
+        // Track if either layer is visible
+        var anyLayerVisible = false;
+        var bmpCounterDiv = document.getElementById('bmp-counter');
+        var parcelCounterDiv = document.getElementById('parcel-counter');
+        var featureCounter = document.getElementById('feature-counter');
+
+        // Update BMP counter
+        if (bmpLayer) {
+            var bmpLayerVisible = bmpLayer.getVisible();
+            
+            if (bmpLayerVisible) {
+                var bmpSource = bmpLayer.getSource();
+                var bmpFeatures = bmpSource.getFeatures();
+                var bmpTotal = bmpFeatures.length;
+                var bmpVisible = bmpFeatures.filter(function(feature) {
+                    // Features with null style are visible, features with empty style are hidden
+                    var style = feature.getStyle();
+                    return style === null || style === undefined;
+                }).length;
+                var bmpPercent = bmpTotal > 0 ? ((bmpVisible / bmpTotal) * 100).toFixed(1) : '0.0';
+                bmpCounterDiv.innerHTML = '<strong>BMP Points:</strong> ' + bmpVisible + '/' + bmpTotal + ' (' + bmpPercent + '%)';
+                bmpCounterDiv.style.display = '';
+                anyLayerVisible = true;
+                console.log('BMP counter updated:', bmpVisible, '/', bmpTotal);
+            } else {
+                bmpCounterDiv.style.display = 'none';
+                console.log('BMP layer is turned off');
+            }
+        } else {
+            console.log('BMP layer not found');
+            bmpCounterDiv.style.display = 'none';
+        }
+
+        // Update Parcel counter
+        if (parcelLayer) {
+            var parcelLayerVisible = parcelLayer.getVisible();
+            
+            if (parcelLayerVisible) {
+                var parcelSource = parcelLayer.getSource();
+                var parcelFeatures = parcelSource.getFeatures();
+                var parcelTotal = parcelFeatures.length;
+                var parcelVisible = parcelFeatures.filter(function(feature) {
+                    // Features with null style are visible, features with empty style are hidden
+                    var style = feature.getStyle();
+                    return style === null || style === undefined;
+                }).length;
+                var parcelPercent = parcelTotal > 0 ? ((parcelVisible / parcelTotal) * 100).toFixed(1) : '0.0';
+                parcelCounterDiv.innerHTML = '<strong>Parcel Projects:</strong> ' + parcelVisible + '/' + parcelTotal + ' (' + parcelPercent + '%)';
+                parcelCounterDiv.style.display = '';
+                anyLayerVisible = true;
+                console.log('Parcel counter updated:', parcelVisible, '/', parcelTotal);
+            } else {
+                parcelCounterDiv.style.display = 'none';
+                console.log('Parcel layer is turned off');
+            }
+        } else {
+            console.log('Parcel layer not found');
+            parcelCounterDiv.style.display = 'none';
+        }
+        
+        // Hide entire counter box if both layers are off
+        if (featureCounter) {
+            if (anyLayerVisible) {
+                featureCounter.style.display = 'block';
+            } else {
+                featureCounter.style.display = 'none';
+                console.log('Both layers off, hiding feature counter');
+            }
+        }
+    };
+    
+    // Function to download filtered data
+    window.downloadFilteredData = function(format, filename, includeBMP, includeParcel) {
+        // Find the BMP and Parcel layers
+        var bmpLayer = null;
+        var parcelLayer = null;
+        
+        map.getLayers().forEach(function(layer) {
+            if (layer instanceof ol.layer.Group) {
+                layer.getLayers().forEach(function(subLayer) {
+                    var title = subLayer.get('title');
+                    if (title) {
+                        if (title.indexOf('BMP Survey Points') === 0) {
+                            bmpLayer = subLayer;
+                        } else if (title.indexOf('Parcel Level Projects') === 0) {
+                            parcelLayer = subLayer;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Collect visible features from selected layers
+        var visibleFeatures = [];
+        
+        if (includeBMP && bmpLayer && bmpLayer.getVisible()) {
+            var bmpSource = bmpLayer.getSource();
+            var bmpFeatures = bmpSource.getFeatures();
+            bmpFeatures.forEach(function(feature) {
+                var style = feature.getStyle();
+                if (style === null || style === undefined) {
+                    visibleFeatures.push({
+                        feature: feature,
+                        layerType: 'BMP Survey Points'
+                    });
+                }
+            });
+        }
+        
+        if (includeParcel && parcelLayer && parcelLayer.getVisible()) {
+            var parcelSource = parcelLayer.getSource();
+            var parcelFeatures = parcelSource.getFeatures();
+            parcelFeatures.forEach(function(feature) {
+                var style = feature.getStyle();
+                if (style === null || style === undefined) {
+                    visibleFeatures.push({
+                        feature: feature,
+                        layerType: 'Parcel Level Projects'
+                    });
+                }
+            });
+        }
+        
+        if (visibleFeatures.length === 0) {
+            alert('No visible features to export from the selected layers. Please enable layers and ensure features are not filtered out.');
+            return;
+        }
+        
+        if (format === 'excel') {
+            downloadAsExcel(visibleFeatures, filename);
+        } else if (format === 'csv') {
+            downloadAsCSV(visibleFeatures, filename);
+        } else if (format === 'geojson') {
+            downloadAsGeoJSON(visibleFeatures, filename);
+        }
+    };
+    
+    // Function to export as Excel
+    function downloadAsExcel(visibleFeatures, filename) {
+        if (typeof XLSX === 'undefined') {
+            console.warn('XLSX library not available. Falling back to CSV export.');
+            alert('Excel export requires the SheetJS library. Downloading as CSV instead.');
+            downloadAsCSV(visibleFeatures, filename);
+            return;
+        }
+        
+        // Group features by layer type
+        var featuresByLayer = {};
+        visibleFeatures.forEach(function(item) {
+            var layerType = item.layerType;
+            if (!featuresByLayer[layerType]) {
+                featuresByLayer[layerType] = [];
+            }
+            featuresByLayer[layerType].push(item);
+        });
+        
+        // Create workbook
+        var wb = XLSX.utils.book_new();
+        
+        // Create a sheet for each layer type
+        Object.keys(featuresByLayer).forEach(function(layerType) {
+            var layerFeatures = featuresByLayer[layerType];
+            
+            // Collect all unique field names for this layer
+            var allFields = {};
+            layerFeatures.forEach(function(item) {
+                var props = item.feature.getProperties();
+                for (var key in props) {
+                    if (key !== 'geometry' && key !== 'layerObject' && key !== 'idO') {
+                        allFields[key] = true;
+                    }
+                }
+            });
+            
+            // Add X/Y coordinates at the beginning (no Layer_Type since it's one per sheet)
+            var fieldNames = ['X', 'Y'].concat(Object.keys(allFields).sort());
+            
+            // Create array of arrays for Excel
+            var data = [];
+            
+            // Add header row
+            data.push(fieldNames);
+            
+            // Add data rows
+            layerFeatures.forEach(function(item) {
+                var props = item.feature.getProperties();
+                var geom = item.feature.getGeometry();
+                var coords = null;
+                
+                // Get coordinates and reproject to WGS84
+                if (geom) {
+                    var geomType = geom.getType();
+                    if (geomType === 'Point') {
+                        coords = geom.getCoordinates();
+                    } else if (geomType === 'MultiPoint') {
+                        coords = geom.getCoordinates()[0];
+                    } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+                        coords = geomType === 'LineString' ? geom.getCoordinates()[0] : geom.getCoordinates()[0][0];
+                    } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+                        var extent = geom.getExtent();
+                        coords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+                    }
+                    
+                    // Reproject to WGS84 (EPSG:4326)
+                    if (coords) {
+                        coords = ol.proj.transform(coords, map.getView().getProjection(), 'EPSG:4326');
+                    }
+                }
+                
+                var row = fieldNames.map(function(field) {
+                    if (field === 'X') {
+                        return coords ? coords[0].toFixed(6) : '';
+                    } else if (field === 'Y') {
+                        return coords ? coords[1].toFixed(6) : '';
+                    } else {
+                        var value = props[field];
+                        return (value === null || value === undefined) ? '' : value;
+                    }
+                });
+                data.push(row);
+            });
+            
+            // Create worksheet
+            var ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Auto-size columns
+            var colWidths = fieldNames.map(function(field) {
+                var maxLength = field.length;
+                layerFeatures.forEach(function(item) {
+                    var props = item.feature.getProperties();
+                    var value;
+                    if (field === 'X' || field === 'Y') {
+                        value = '000.000000';
+                    } else {
+                        value = props[field];
+                    }
+                    if (value !== null && value !== undefined) {
+                        var valueLength = String(value).length;
+                        if (valueLength > maxLength) {
+                            maxLength = valueLength;
+                        }
+                    }
+                });
+                return { wch: Math.min(maxLength + 2, 50) };
+            });
+            ws['!cols'] = colWidths;
+            
+            // Use appropriate sheet name
+            var sheetName = layerType === 'BMP Survey Points' ? 'BMP_Points' : 'Parcel_Projects';
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
+        
+        // Generate Excel file and trigger download
+        try {
+            XLSX.writeFile(wb, filename + '.xlsx');
+        } catch (error) {
+            console.error('Error creating Excel file:', error);
+            alert('Error creating Excel file. Downloading as CSV instead.');
+            downloadAsCSV(visibleFeatures, filename);
+        }
+    }
+    
+    // Function to export as CSV
+    function downloadAsCSV(visibleFeatures, filename) {
+        // Group features by layer type
+        var featuresByLayer = {};
+        visibleFeatures.forEach(function(item) {
+            var layerType = item.layerType;
+            if (!featuresByLayer[layerType]) {
+                featuresByLayer[layerType] = [];
+            }
+            featuresByLayer[layerType].push(item);
+        });
+        
+        // Create a CSV for each layer type
+        Object.keys(featuresByLayer).forEach(function(layerType) {
+            var layerFeatures = featuresByLayer[layerType];
+            
+            // Collect all unique field names for this layer
+            var allFields = {};
+            layerFeatures.forEach(function(item) {
+                var props = item.feature.getProperties();
+                for (var key in props) {
+                    if (key !== 'geometry' && key !== 'layerObject' && key !== 'idO') {
+                        allFields[key] = true;
+                    }
+                }
+            });
+            
+            // Add X/Y coordinates at the beginning (no Layer_Type since it's one per file)
+            var fieldNames = ['X', 'Y'].concat(Object.keys(allFields).sort());
+            
+            // Create CSV header
+            var csv = fieldNames.map(function(field) {
+                return '"' + field + '"';
+            }).join(',') + '\n';
+            
+            // Add data rows
+            layerFeatures.forEach(function(item) {
+                var props = item.feature.getProperties();
+                var geom = item.feature.getGeometry();
+                var coords = null;
+                
+                // Get coordinates and reproject to WGS84
+                if (geom) {
+                    var geomType = geom.getType();
+                    if (geomType === 'Point') {
+                        coords = geom.getCoordinates();
+                    } else if (geomType === 'MultiPoint') {
+                        coords = geom.getCoordinates()[0];
+                    } else if (geomType === 'LineString' || geomType === 'MultiLineString') {
+                        coords = geomType === 'LineString' ? geom.getCoordinates()[0] : geom.getCoordinates()[0][0];
+                    } else if (geomType === 'Polygon' || geomType === 'MultiPolygon') {
+                        var extent = geom.getExtent();
+                        coords = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+                    }
+                    
+                    // Reproject to WGS84 (EPSG:4326)
+                    if (coords) {
+                        coords = ol.proj.transform(coords, map.getView().getProjection(), 'EPSG:4326');
+                    }
+                }
+                
+                var row = fieldNames.map(function(field) {
+                    var value;
+                    if (field === 'X') {
+                        value = coords ? coords[0].toFixed(6) : '';
+                    } else if (field === 'Y') {
+                        value = coords ? coords[1].toFixed(6) : '';
+                    } else {
+                        value = props[field];
+                    }
+                    
+                    // Handle null/undefined
+                    if (value === null || value === undefined) {
+                        return '""';
+                    }
+                    
+                    // Convert to string and escape quotes
+                    value = String(value).replace(/"/g, '""');
+                    return '"' + value + '"';
+                });
+                csv += row.join(',') + '\n';
+            });
+            
+            // Create download with appropriate suffix
+            var suffix = layerType === 'BMP Survey Points' ? '_points' : '_parcels';
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename + suffix + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+    
+    // Function to export as GeoJSON
+    function downloadAsGeoJSON(visibleFeatures, filename) {
+        // Group features by layer type
+        var featuresByLayer = {};
+        visibleFeatures.forEach(function(item) {
+            var layerType = item.layerType;
+            if (!featuresByLayer[layerType]) {
+                featuresByLayer[layerType] = [];
+            }
+            featuresByLayer[layerType].push(item);
+        });
+        
+        var format = new ol.format.GeoJSON();
+        
+        // Create a GeoJSON for each layer type
+        Object.keys(featuresByLayer).forEach(function(layerType) {
+            var layerFeatures = featuresByLayer[layerType];
+            
+            var geojson = {
+                type: 'FeatureCollection',
+                features: []
+            };
+            
+            layerFeatures.forEach(function(item) {
+                // Get the feature geometry
+                var geom = item.feature.getGeometry();
+                
+                // Get properties (no Layer_Type since it's one per file)
+                var props = {};
+                var originalProps = item.feature.getProperties();
+                for (var key in originalProps) {
+                    if (key !== 'geometry' && key !== 'layerObject' && key !== 'idO') {
+                        props[key] = originalProps[key];
+                    }
+                }
+                
+                // Convert OpenLayers feature to GeoJSON
+                var olFeature = new ol.Feature({
+                    geometry: geom
+                });
+                olFeature.setProperties(props);
+                
+                var geoJsonFeature = format.writeFeatureObject(olFeature, {
+                    dataProjection: 'EPSG:4326',
+                    featureProjection: map.getView().getProjection()
+                });
+                
+                geojson.features.push(geoJsonFeature);
+            });
+            
+            // Create download with appropriate suffix
+            var suffix = layerType === 'BMP Survey Points' ? '_points' : '_parcels';
+            var jsonString = JSON.stringify(geojson, null, 2);
+            var blob = new Blob([jsonString], { type: 'application/json' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename + suffix + '.geojson');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
+    
+    // Function to export as ESRI Shapefile (zipped)
+    
+    // Set up listeners for layer visibility changes
+    // This will be called after layers are loaded to attach visibility listeners
+    setTimeout(function() {
+        map.getLayers().forEach(function(layer) {
+            if (layer instanceof ol.layer.Group) {
+                layer.getLayers().forEach(function(subLayer) {
+                    var title = subLayer.get('title');
+                    if (title && (title.indexOf('BMP Survey Points') === 0 || title.indexOf('Parcel Level Projects') === 0)) {
+                        // Listen for visibility changes
+                        subLayer.on('change:visible', function() {
+                            console.log('Layer visibility changed:', title, 'now', subLayer.getVisible());
+                            window.updateFeatureCounts();
+                        });
+                        console.log('Added visibility listener to:', title);
+                    }
+                });
+            }
+        });
+    }, 2000);
+
+    // Update counts on initial load - wait for map to render
+    map.once('rendercomplete', function() {
+        console.log('Map render complete, updating feature counts');
+        setTimeout(window.updateFeatureCounts, 500);
+    });
+    
+    // Fallback - also try after a delay in case the event doesn't fire
+    setTimeout(window.updateFeatureCounts, 3000);
 
   
     //top right container
@@ -1226,8 +2689,8 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
     // First check if there's an image to display at the top
     if (currentFeature.get('image_url')) {
         var imageUrl = currentFeature.get('image_url');
-        popupText += '<tr><td colspan="2" style="text-align: center; padding: 10px 0;"><img src="' + 
-            imageUrl + '" alt="Site photo" style="max-width: 100%; max-height: 300px; cursor: pointer;" ' +
+        popupText += '<tr><td colspan="2" style="text-align: center; padding: 10px 0; border-bottom: 1px solid #e0e0e0;"><img src="' + 
+            imageUrl + '" alt="Site photo" style="max-width: 100%; max-height: 300px; cursor: pointer; border-radius: 4px;" ' +
             'onclick="openLightbox(\'' + imageUrl.replace(/'/g, "\\'") + '\')" ' +
             'title="Click to view full size" /></td></tr>';
     }
@@ -1236,77 +2699,35 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
     var summaryText = '';
     var bmpCategory = currentFeature.get('BMP_Category');
     if (bmpCategory) {
-        summaryText += '<tr><td colspan="2" style="padding: 15px; text-align: center; border-bottom: 2px solid #ccc;">' +
+        summaryText += '<tr><td colspan="2" style="padding: 15px; text-align: center; border-bottom: 2px solid #ccc; background-color: #f9f9f9;">' +
             '<div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Summary</div>' +
-            '<div style="font-size: 15px; margin-bottom: 10px;">• BMP Category: ' + bmpCategory + '</div>';
+            '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>BMP Category:</strong> ' + bmpCategory + '</div>';
         
         // Add Stormwater Priority only if category is stormwater
         if (bmpCategory.toLowerCase() === 'stormwater') {
             var swScore = currentFeature.get('Final_SW_Score');
-            if (swScore !== null) {
-                summaryText += '<div style="font-size: 15px; margin-bottom: 10px;">• Stormwater Priority: ' + swScore + '</div>';
+            if (swScore !== null && swScore !== '' && swScore !== undefined) {
+                summaryText += '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>Stormwater Priority:</strong> ' + swScore + '</div>';
             }
         }
         
         // Add Critical Recharge Zone message if In_Critical_Recharge = 1
         var inCriticalRecharge = currentFeature.get('In_Critical_Recharge');
         if (inCriticalRecharge === 1 || inCriticalRecharge === 1.0) {
-            summaryText += '<div style="font-size: 15px; margin-bottom: 10px; color: red; font-style: italic;">In Critical Recharge Zone</div>';
+            summaryText += '<div style="font-size: 15px; margin-bottom: 8px; color: #d32f2f; font-weight: bold;">⚠ In Critical Recharge Zone</div>';
         }
         
         // Add source information
         var source = currentFeature.get('Source');
         var sourceYear = currentFeature.get('Source_Year');
         if (source || sourceYear) {
-            summaryText += '<div style="font-size: 15px; margin-bottom: 10px;">• Original Source: ' + 
+            summaryText += '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>Original Source:</strong> ' + 
                 (source || '') + (source && sourceYear ? ', ' : '') + (sourceYear || '') + '</div>';
         }
         
         summaryText += '</td></tr>';
         popupText += summaryText;
     }
-    document.addEventListener('DOMContentLoaded', function() {
-        var utilityBar = document.createElement('div');
-        utilityBar.className = 'utility-bar collapsed';
-        utilityBar.innerHTML = `
-            <div class="utility-bar-section" id="utility-bar-filters">
-                <h3>Filters</h3>
-                <div class="filter-group">
-                    <label for="filter-priority-subwatershed">Priority Subwatershed:</label>
-                    <select id="filter-priority-subwatershed">
-                        <option value="">All</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="filter-project-type">Project Type:</label>
-                    <select id="filter-project-type">
-                        <option value="">All</option>
-                        <option value="Stormwater">Stormwater</option>
-                        <option value="Buffer">Buffer</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-            </div>
-            <!-- More sections can be added below -->
-        `;
-        document.body.appendChild(utilityBar);
-
-        var utilityBarToggle = document.createElement('div');
-        utilityBarToggle.className = 'utility-bar-toggle';
-        utilityBarToggle.innerHTML = '&#9776;'; // Hamburger icon
-        utilityBarToggle.onclick = function() {
-            utilityBar.classList.toggle('collapsed');
-        };
-        document.body.appendChild(utilityBarToggle);
-  
-        // Link the CSS for the utility bar
-        var utilityBarCss = document.createElement('link');
-        utilityBarCss.rel = 'stylesheet';
-        utilityBarCss.href = 'resources/utility_bar.css';
-        document.head.appendChild(utilityBarCss);
-    });
     
     // Add remaining fields
     for (var i = 0; i < currentFeatureKeys.length; i++) {
@@ -1318,85 +2739,82 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             currentFeatureKeys[i] == 'BMP_Category' ||
             currentFeatureKeys[i] == 'Final_SW_Score' ||
             currentFeatureKeys[i] == 'Source' ||
-            currentFeatureKeys[i] == 'Source_Year') {
+            currentFeatureKeys[i] == 'Source_Year' ||
+            currentFeatureKeys[i] == 'In_Critical_Recharge') {
             continue;
         }
 
-        // Skip null or empty values
+        // Skip null, empty, or whitespace-only values
         var value = currentFeature.get(currentFeatureKeys[i]);
-        if (value === null || value === '' || value === ' ') {
+        if (value === null || value === '' || value === ' ' || value === undefined || 
+            (typeof value === 'string' && value.trim() === '')) {
             continue;
         }
-        
-        var popupField = '';
         
         // Skip hidden fields
         if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "hidden field") {
             continue;
         }
         
-        // Handle field labels
-        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "inline label - always visible" ||
-            layer.get('fieldLabels')[currentFeatureKeys[i]] == "inline label - visible with data") {
-            var fieldName = layer.get('fieldAliases')[currentFeatureKeys[i]] || currentFeatureKeys[i];
-            // Replace underscores with spaces and capitalize each word
-            fieldName = fieldName.replace(/_/g, ' ').replace(/\w\S*/g, function(txt) {
-                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-            });
-            popupField += '<th style="font-size: 14px; padding: 4px 8px; text-align: right;">' + 
-                fieldName + ':</th>' +
-                '<td style="font-size: 14px; padding: 4px 8px;">';
-        } else {
-            popupField += '<td colspan="2" style="font-size: 14px; padding: 4px 8px;">';
-        }
-
-        // Handle header labels
-        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "header label - visible with data") {
-            if (currentFeature.get(currentFeatureKeys[i]) == null) {
-                continue;
-            }
+        // Skip if no label is configured
+        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "no label") {
+            continue;
         }
         
-        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "header label - always visible" ||
-            layer.get('fieldLabels')[currentFeatureKeys[i]] == "header label - visible with data") {
-            popupField += '<strong>' + layer.get('fieldAliases')[currentFeatureKeys[i]] + '</strong><br />';
-        }
+        // Get the field name (label)
+        var fieldName = layer.get('fieldAliases')[currentFeatureKeys[i]] || currentFeatureKeys[i];
+        // Replace underscores with spaces and clean up field name
+        fieldName = fieldName.replace(/_/g, ' ').replace(/\([^)]*\)/g, '').trim();
+        // Capitalize properly
+        fieldName = fieldName.replace(/\w\S*/g, function(txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+        
+        var popupField = '';
+        
+        // All fields get the same two-column format with label and value
+        popupField += '<tr style="border-bottom: 1px solid #f0f0f0;">' +
+            '<td style="font-size: 13px; padding: 8px; text-align: left; vertical-align: top; ' +
+            'background-color: #f7f7f7; color: #555; font-weight: 600; white-space: nowrap; width: 40%;">' + 
+            fieldName + ':</td>' +
+            '<td style="font-size: 13px; padding: 8px; text-align: left; color: #333; word-wrap: break-word; width: 60%;">';
 
         // Handle field values
         if (layer.get('fieldImages')[currentFeatureKeys[i]] != "ExternalResource") {
-            if (currentFeature.get(currentFeatureKeys[i]) != null) {
-                popupField += '<span style="color: #444;">' + 
-                    autolinker.link(currentFeature.get(currentFeatureKeys[i]).toLocaleString()) + 
-                    '</span></td>';
+            if (value != null && value !== '') {
+                // Format numbers nicely
+                var displayValue = value;
+                if (typeof value === 'number') {
+                    displayValue = value.toLocaleString();
+                }
+                popupField += '<span>' + autolinker.link(displayValue.toString()) + '</span></td></tr>';
             } else {
-                popupField += '</td>';
+                popupField = ''; // Don't add empty rows
             }
         } else {
-            var fieldValue = currentFeature.get(currentFeatureKeys[i]);
-            if (fieldValue != null) {
-                if (/\.(gif|jpg|jpeg|tif|tiff|png|avif|webp|svg)$/i.test(fieldValue)) {
-                    popupField += '<img src="images/' + fieldValue.replace(/[\\\/:]/g, '_').trim() + 
-                        '" style="max-width:300px; margin: auto;" /></td>';
-                } else if (/\.(mp4|webm|ogg|avi|mov|flv)$/i.test(fieldValue)) {
-                    popupField += '<video controls><source src="images/' + 
-                        fieldValue.replace(/[\\\/:]/g, '_').trim() + 
-                        '" type="video/mp4">Your browser does not support the video tag.</video></td>';
-                } else if (/\.(mp3|wav|ogg|aac|flac)$/i.test(fieldValue)) {
-                    popupField += '<audio controls><source src="images/' + 
-                        fieldValue.replace(/[\\\/:]/g, '_').trim() + 
-                        '" type="audio/mpeg">Your browser does not support the audio tag.</audio></td>';
+            if (value != null && value !== '') {
+                if (/\.(gif|jpg|jpeg|tif|tiff|png|avif|webp|svg)$/i.test(value)) {
+                    popupField += '<img src="images/' + value.replace(/[\\\/:]/g, '_').trim() + 
+                        '" style="max-width: 100%; margin: 5px auto; display: block; border-radius: 4px;" /></td></tr>';
+                } else if (/\.(mp4|webm|ogg|avi|mov|flv)$/i.test(value)) {
+                    popupField += '<video controls style="max-width: 100%;"><source src="images/' + 
+                        value.replace(/[\\\/:]/g, '_').trim() + 
+                        '" type="video/mp4">Your browser does not support the video tag.</video></td></tr>';
+                } else if (/\.(mp3|wav|ogg|aac|flac)$/i.test(value)) {
+                    popupField += '<audio controls style="width: 100%;"><source src="images/' + 
+                        value.replace(/[\\\/:]/g, '_').trim() + 
+                        '" type="audio/mpeg">Your browser does not support the audio tag.</audio></td></tr>';
                 } else {
-                    popupField += '<span style="color: #444;">' + 
-                        autolinker.link(fieldValue.toLocaleString()) + '</span></td>';
+                    popupField += '<span>' + autolinker.link(value.toString()) + '</span></td></tr>';
                 }
             } else {
-                popupField += '</td>';
+                popupField = ''; // Don't add empty rows
             }
         }
         
-        // Add the field to the popup text
+        // Add the field to the popup text only if it has content
         if (popupField) {
-            popupText += '<tr>' + popupField + '</tr>';
+            popupText += popupField;
         }
     }
     

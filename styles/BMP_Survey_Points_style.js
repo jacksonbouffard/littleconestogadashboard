@@ -1,7 +1,7 @@
 var size = 0;
 var placement = 'point';
 
-var style_BMP_Survey_Points_9 = function(feature, resolution){
+var style_BMP_Survey_Points = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
@@ -68,7 +68,7 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
         return null;
     }
     
-    function rules_BMP_Survey_Points_9(feature, value) {
+    function rules_BMP_Survey_Points(feature, value) {
         var context = {
             feature: feature,
             variables: {}
@@ -110,6 +110,6 @@ var style_BMP_Survey_Points_9 = function(feature, resolution){
         
         return styles;
     }
-    var style = rules_BMP_Survey_Points_9(feature, value);
+    var style = rules_BMP_Survey_Points(feature, value);
     return style;
 };
