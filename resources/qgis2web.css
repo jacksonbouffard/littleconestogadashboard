@@ -29,6 +29,7 @@ html, body {
     background-color: white;
     padding: 15px 20px;
     border-radius: 8px;
+    border: 2px solid #0056b3;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
@@ -120,6 +121,31 @@ html, body {
 
 #popup-content li {
     margin-bottom:0.25em;
+}
+
+/* Feature item container - adds spacing and separation between multiple features */
+#popup-content li.feature-item {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+#popup-content li.feature-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Feature title styling - makes layer names more prominent */
+#popup-content .feature-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #0056b3;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 #popup-content>ul>li>a {

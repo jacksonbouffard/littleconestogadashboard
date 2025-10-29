@@ -54,6 +54,7 @@
 }
 .layer-switcher.shown .panel {
   display: block;
+  border: 2px solid #0056b3;
 }
 
 .layer-switcher.shown button {
@@ -82,15 +83,39 @@
 }
 .layer-switcher ul ul {
   padding-left: 1.2em;
-  margin: 0.5em 0 0.5em 0;
-  background-color: rgba(255, 255, 255, 0.3);
+  margin: 0.5em 0 0.5em auto;
+  background-color: rgba(255, 255, 255, 1);
   border-radius: 4px;
   padding: 0.5em 0.5em 0.5em 1.5em;
+  border: 1px solid #0056b3;
+  width: fit-content;
+  min-width: 250px;
+  margin-left: auto;
+  margin-right: 0;
 }
 .layer-switcher li.group + li.group {
   margin-top: 1em;
   padding-top: 0.8em;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid #0056b3;
+}
+
+.layer-switcher li.group {
+  position: relative;
+  margin-top: 0.5em;
+  margin-bottom: 0.3em;
+  display: flex;
+  align-items: center;
+}
+
+.layer-switcher li.group > input {
+  position: relative;
+  left: 0;
+  top: 0;
+  height: 1.5em;
+  width: 1.5em;
+  margin: 0;
+  margin-right: 0.5em;
+  flex-shrink: 0;
 }
 
 .layer-switcher li.group > label {
@@ -99,7 +124,10 @@
   color: #333;
   text-transform: none;
   letter-spacing: normal;
-  padding-bottom: 0.3em;
+  padding-bottom: 0;
+  padding-left: 0;
+  line-height: 1.5em;
+  margin: 0;
 }
 
 .layer-switcher.layer-switcher-group-select-style-none li.group > label {
@@ -115,17 +143,18 @@
 .layer-switcher li input {
   position: absolute;
   left: 1.2em;
-  height: 1em;
-  width: 1em;
+  height: 1.2em;
+  width: 1.2em;
   font-size: 1em;
   cursor: pointer;
   accent-color: #0056b3;
+  top: 0.1em;
 }
 .layer-switcher li label {
   padding-left: 2.7em;
   padding-right: 1.2em;
   display: inline-block;
-  margin-top: 1px;
+  margin-top: 0px;
   color: #333;
   font-size: 1em;
   font-weight: normal;

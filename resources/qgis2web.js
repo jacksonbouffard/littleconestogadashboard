@@ -20,6 +20,28 @@ function closeSplash() {
   }
 }
 
+// Function to open splash screen
+function openSplash() {
+  var splashScreen = document.getElementById('splash-screen');
+  var mapElement = document.getElementById('map');
+  
+  if (splashScreen) {
+    splashScreen.style.display = 'flex';
+    // Remove hidden class to trigger fade-in
+    setTimeout(function() {
+      splashScreen.classList.remove('hidden');
+    }, 10);
+    // Add blur to map and controls
+    if (mapElement) {
+      mapElement.classList.add('blurred');
+    }
+    // Add body classes to prevent scrolling and blur controls
+    document.body.classList.add('no-scroll');
+    document.body.classList.add('splash-active');
+  }
+}
+
+
 // Function to open lightbox with full-size image
 function openLightbox(imageSrc) {
   var lightbox = document.getElementById('lightbox');
@@ -76,6 +98,50 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="utility-bar-section" id="utility-bar-both-filters">
           <h3>Both (Points & Parcels)</h3>
           <div class="filter-group">
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>In Critical Recharge:</span>
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                      <span id="recharge-label">OFF</span>
+                      <label class="switch">
+                          <input type="checkbox" id="critical-recharge-toggle">
+                          <span class="switch-slider"></span>
+                      </label>
+                  </span>
+              </label>
+          </div>
+          <div class="filter-group">
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>Project Type:</span>
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                      <span id="logic-label">OR</span>
+                      <label class="switch">
+                          <input type="checkbox" id="project-type-logic">
+                          <span class="switch-slider"></span>
+                      </label>
+                  </span>
+              </label>
+              <div id="and-logic-message" style="display: none; font-size: 11px; color: #666; font-style: italic; margin: 5px 0 8px 0;">
+                  Showing parcel projects with all selected types
+              </div>
+              <div class="checkbox-group" id="filter-project-type">
+                  <label><input type="checkbox" value="SWR"> SWR - Stormwater Retrofit</label>
+                  <label><input type="checkbox" value="RB"> RB - Riparian Buffer</label>
+                  <label><input type="checkbox" value="BI"> BI - Bioinfiltration</label>
+                  <label><input type="checkbox" value="SR"> SR - Stream Restoration</label>
+                  <label><input type="checkbox" value="BSR"> BSR - Bioswale Retrofit</label>
+                  <label><input type="checkbox" value="FR"> FR - Floodplain Restoration</label>
+                  <label><input type="checkbox" value="PP"> PP - Permeable Pavement</label>
+                  <label><input type="checkbox" value="SBF"> SBF - Stream Bank Fencing</label>
+                  <label><input type="checkbox" value="GW"> GW - Grassed Waterway</label>
+                  <label><input type="checkbox" value="WR"> WR - Wetland Restoration</label>
+                  <label><input type="checkbox" value="BRC"> BRC - Barnyard Runoff Control</label>
+                  <label><input type="checkbox" value="CL"> CL - Conservation Landscaping</label>
+                  <label><input type="checkbox" value="NT"> NT - No-Till</label>
+                  <label><input type="checkbox" value="PM"> PM - Pasture Management</label>
+                  <label><input type="checkbox" value="T&D"> T&D - Terrace & Diversion</label>
+              </div>
+          </div>
+          <div class="filter-group">
               <label class="collapsible-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                   <span>Delisting Catchments:</span> <span class="collapse-icon">▼</span>
               </label>
@@ -127,54 +193,22 @@ document.addEventListener('DOMContentLoaded', function() {
                   <label><input type="checkbox" value="WEST HEMPFIELD"> West Hempfield</label>
               </div>
           </div>
-          <div class="filter-group">
-              <label style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>In Critical Recharge:</span>
-                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                      <span id="recharge-label">OFF</span>
-                      <label class="switch">
-                          <input type="checkbox" id="critical-recharge-toggle">
-                          <span class="switch-slider"></span>
-                      </label>
-                  </span>
-              </label>
-          </div>
-          <div class="filter-group">
-              <label style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>Project Type:</span>
-                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                      <span id="logic-label">OR</span>
-                      <label class="switch">
-                          <input type="checkbox" id="project-type-logic">
-                          <span class="switch-slider"></span>
-                      </label>
-                  </span>
-              </label>
-              <div id="and-logic-message" style="display: none; font-size: 11px; color: #666; font-style: italic; margin: 5px 0 8px 0;">
-                  Showing parcel projects with all selected types
-              </div>
-              <div class="checkbox-group" id="filter-project-type">
-                  <label><input type="checkbox" value="SWR"> SWR - Stormwater Retrofit</label>
-                  <label><input type="checkbox" value="RB"> RB - Riparian Buffer</label>
-                  <label><input type="checkbox" value="BI"> BI - Bioinfiltration</label>
-                  <label><input type="checkbox" value="SR"> SR - Stream Restoration</label>
-                  <label><input type="checkbox" value="BSR"> BSR - Bioswale Retrofit</label>
-                  <label><input type="checkbox" value="FR"> FR - Floodplain Restoration</label>
-                  <label><input type="checkbox" value="PP"> PP - Permeable Pavement</label>
-                  <label><input type="checkbox" value="SBF"> SBF - Stream Bank Fencing</label>
-                  <label><input type="checkbox" value="GW"> GW - Grassed Waterway</label>
-                  <label><input type="checkbox" value="WR"> WR - Wetland Restoration</label>
-                  <label><input type="checkbox" value="BRC"> BRC - Barnyard Runoff Control</label>
-                  <label><input type="checkbox" value="CL"> CL - Conservation Landscaping</label>
-                  <label><input type="checkbox" value="NT"> NT - No-Till</label>
-                  <label><input type="checkbox" value="PM"> PM - Pasture Management</label>
-                  <label><input type="checkbox" value="T&D"> T&D - Terrace & Diversion</label>
-              </div>
-          </div>
       </div>
       
       <div class="utility-bar-section" id="utility-bar-point-filters">
           <h3>Point Filters</h3>
+          <div class="filter-group">
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>Has Photos:</span>
+                  <span style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                      <span id="photos-label">OFF</span>
+                      <label class="switch">
+                          <input type="checkbox" id="photos-toggle">
+                          <span class="switch-slider"></span>
+                      </label>
+                  </span>
+              </label>
+          </div>
           <div class="filter-group">
               <label class="collapsible-label-bmp" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                   <span>BMP Category:</span> <span class="collapse-icon-bmp">▼</span>
@@ -252,6 +286,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get critical recharge filter state (false = Off/0, true = On/1)
     var criticalRechargeOn = document.getElementById('critical-recharge-toggle').checked;
+    
+    // Get photos filter state (false = Off/0, true = On/1)
+    var photosOn = document.getElementById('photos-toggle').checked;
     
     // Get selected conservation land types from checkboxes
     var selectedConservationTypes = [];
@@ -417,6 +454,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by In_Critical_Recharge (if toggle is on, only show features with value = 1)
         if (criticalRechargeOn) {
           if (props.In_Critical_Recharge !== 1 && props.In_Critical_Recharge !== 1.0) {
+            show = false;
+          }
+        }
+        
+        // Filter by image_binary (if toggle is on, only show features with photos = 1)
+        if (photosOn) {
+          if (props.image_binary !== 1 && props.image_binary !== 1.0) {
             show = false;
           }
         }
@@ -858,6 +902,18 @@ document.addEventListener('DOMContentLoaded', function() {
     applyFilters();
   });
   
+  // Add event listener for Photos toggle
+  var photosToggle = document.getElementById('photos-toggle');
+  var photosLabel = document.getElementById('photos-label');
+  photosToggle.addEventListener('change', function() {
+    if (this.checked) {
+      photosLabel.textContent = 'ON';
+    } else {
+      photosLabel.textContent = 'OFF';
+    }
+    applyFilters();
+  });
+  
   // Add event listeners for Conservation Land checkboxes
   var conservationCheckboxes = document.querySelectorAll('#filter-conservation-land input[type="checkbox"]');
   conservationCheckboxes.forEach(function(checkbox) {
@@ -1058,6 +1114,22 @@ map.getView().setProperties({constrainResolution: true});
     });
     map.addControl(bottomLeftContainer)
   
+    // Create splash screen button (info/help button)
+    var splashButtonContainer = document.createElement('div');
+    splashButtonContainer.className = 'ol-unselectable ol-control splash-button-control';
+    
+    var splashButton = document.createElement('button');
+    splashButton.className = 'splash-reopen-button';
+    splashButton.innerHTML = '&#9432;'; // Info icon (ⓘ)
+    splashButton.title = 'Show Information';
+    splashButton.onclick = function() {
+        openSplash();
+    };
+    
+    splashButtonContainer.appendChild(splashButton);
+    document.getElementById('bottom-left-container').appendChild(splashButtonContainer);
+
+  
     //top right container
     var topRightContainer = new ol.control.Control({
         element: (() => {
@@ -1095,11 +1167,9 @@ closer.onclick = function() {
     container.style.display = 'none';
     closer.blur();
     stopMediaInPopup();
-    // Remove highlight when popup is closed
-    if (highlight) {
-        featureOverlay.getSource().removeFeature(highlight);
-        highlight = null;
-    }
+    // Remove all highlights when popup is closed
+    featureOverlay.getSource().clear();
+    highlight = null;
     return false;
 };
 var overlayPopup = new ol.Overlay({
@@ -1489,6 +1559,8 @@ function updatePopup() {
         content.innerHTML = popupContent;
         container.style.display = 'block';
 		overlayPopup.setPosition(popupCoord);
+        // Reset scroll position to top when opening new popup
+        content.scrollTop = 0;
     } else {
         container.style.display = 'none';
         closer.blur();
@@ -1509,12 +1581,15 @@ function onSingleClickFeatures(evt) {
     var currentFeatureKeys;
     var clusteredFeatures;
     var popupText = '<ul>';
+    var featuresToHighlight = []; // Track all features to highlight
     
-    // Clear any existing highlight
+    // Clear any existing highlights
     if (highlight) {
         featureOverlay.getSource().removeFeature(highlight);
         highlight = null;
     }
+    // Clear all features from overlay to prevent ghost highlights
+    featureOverlay.getSource().clear();
     
     map.forEachFeatureAtPixel(pixel, function(feature, layer) {
         if (layer && feature instanceof ol.Feature && (layer.get("interactive") || layer.get("interactive") === undefined)) {
@@ -1531,55 +1606,65 @@ function onSingleClickFeatures(evt) {
                     for(var n = 0; n < clusteredFeatures.length; n++) {
                         currentFeature = clusteredFeatures[n];
                         currentFeatureKeys = currentFeature.getKeys();
-                        popupText += '<li><table>';
-                        popupText += '<a><b>' + layer.get('popuplayertitle') + '</b></a>';
+                        popupText += '<li class="feature-item">';
+                        popupText += '<div class="feature-title">' + layer.get('popuplayertitle') + '</div>';
+                        popupText += '<table>';
                         popupText += createPopupField(currentFeature, currentFeatureKeys, layer);
-                        popupText += '</table></li>';    
+                        popupText += '</table></li>';
+                        // Collect features for highlighting
+                        featuresToHighlight.push(currentFeature);
                     }
                 }
             } else {
                 currentFeatureKeys = currentFeature.getKeys();
                 if (doPopup) {
-                    popupText += '<li><table>';
-                    popupText += '<a><b>' + layer.get('popuplayertitle') + '</b></a>';
+                    popupText += '<li class="feature-item">';
+                    popupText += '<div class="feature-title">' + layer.get('popuplayertitle') + '</div>';
+                    popupText += '<table>';
                     popupText += createPopupField(currentFeature, currentFeatureKeys, layer);
                     popupText += '</table>';
+                    // Collect feature for highlighting
+                    featuresToHighlight.push(currentFeature);
                 }
-            }
-            
-            // Add highlighting for the clicked feature
-            if (currentFeature) {
-                var featureStyle;
-                if (currentFeature.getGeometry().getType() == 'Point' || currentFeature.getGeometry().getType() == 'MultiPoint') {
-                    highlightStyle = new ol.style.Style({
-                        image: new ol.style.Circle({
-                            fill: new ol.style.Fill({
-                                color: "rgba(255, 255, 0, 0.5)"
-                            }),
-                            stroke: new ol.style.Stroke({
-                                color: "#ffff00",
-                                width: 2
-                            }),
-                            radius: 8
-                        })
-                    });
-                } else {
-                    highlightStyle = new ol.style.Style({
-                        fill: new ol.style.Fill({
-                            color: 'rgba(255, 255, 0, 0.3)'
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: '#ffff00',
-                            width: 2
-                        })
-                    });
-                }
-                featureOverlay.getSource().addFeature(currentFeature);
-                featureOverlay.setStyle(highlightStyle);
-                highlight = currentFeature;
             }
         }
     });
+    
+    // Now add highlighting for all collected features after the loop
+    if (featuresToHighlight.length > 0) {
+        for (var i = 0; i < featuresToHighlight.length; i++) {
+            var featureToHighlight = featuresToHighlight[i];
+            var highlightStyle;
+            if (featureToHighlight.getGeometry().getType() == 'Point' || featureToHighlight.getGeometry().getType() == 'MultiPoint') {
+                highlightStyle = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        fill: new ol.style.Fill({
+                            color: "rgba(255, 255, 0, 0.5)"
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: "#ffff00",
+                            width: 2
+                        }),
+                        radius: 8
+                    })
+                });
+            } else {
+                highlightStyle = new ol.style.Style({
+                    fill: new ol.style.Fill({
+                        color: 'rgba(255, 255, 0, 0.3)'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#ffff00',
+                        width: 2
+                    })
+                });
+            }
+            featureOverlay.getSource().addFeature(featureToHighlight);
+            featureOverlay.setStyle(highlightStyle);
+        }
+        // Track the last feature for single highlight removal
+        highlight = featuresToHighlight[featuresToHighlight.length - 1];
+    }
     if (popupText === '<ul>') {
         popupText = '';
     } else {

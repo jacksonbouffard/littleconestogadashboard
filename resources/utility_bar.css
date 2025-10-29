@@ -104,6 +104,38 @@ body {
   box-shadow: none;
 }
 
+/* Splash screen reopen button: matches sidebar toggle button exactly */
+.splash-button-control {
+  background: rgba(255,255,255,0.4) !important;
+  padding: 2px !important;
+  position: fixed !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  z-index: 1500 !important;
+}
+
+.splash-reopen-button {
+  width: 40px !important;
+  height: 40px !important;
+  background-color: #f8f8f8 !important;
+  color: #444444 !important;
+  border: none !important;
+  border-radius: 0px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  font-size: 20px !important;
+  line-height: 40px !important;
+  text-align: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+.splash-reopen-button:hover {
+  background-color: rgba(248, 248, 248, 0.7) !important;
+}
+
 /* Close button for sidebar - positioned on the right edge */
 /* Close button for sidebar - positioned as a lip jutting into the map */
 .utility-bar-close {
@@ -156,7 +188,7 @@ body {
 }
 .utility-bar-section {
   padding: 18px 16px 12px 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #0056b3;
 }
 .utility-bar-section h3 {
   margin: 0 0 10px 0;
