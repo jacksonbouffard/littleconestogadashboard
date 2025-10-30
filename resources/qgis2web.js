@@ -262,6 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class="checkbox-group collapsed" id="filter-bmp-category">
                   <label><input type="checkbox" value="Stormwater"> Stormwater</label>
                   <label><input type="checkbox" value="Agricultural"> Agricultural</label>
+                  <div style="font-size: 11px; font-style: italic; color: #666; margin-top: 5px; padding-left: 5px;">
+                      SWR, BI, PP & BSR are considered stormwater BMPs
+                  </div>
               </div>
           </div>
           <div class="filter-group">
@@ -275,7 +278,15 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
           </div>
           <div class="filter-group">
-              <label for="filter-sw-score">Stormwater Priority Score:</label>
+              <label for="filter-sw-score">
+                  Stormwater Priority Score:
+                  <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vRY9YPQ0GDHTRN8IbKcIVHMEzaPalyrNyUDTMQpR0o_6n02TydW6x8n8YcXXOkps0No2TwEb2sKYMy3/pubhtml" target="_blank" rel="noopener noreferrer" 
+                     style="margin-left: 5px; font-size: 10px; padding: 2px 6px; background-color: #5a9fd4; color: white; 
+                            text-decoration: none; border-radius: 3px; display: inline-block; vertical-align: middle;"
+                     title="View methodology documentation">
+                      Methodology
+                  </a>
+              </label>
               <div class="slider-container">
                   <input type="range" id="filter-sw-score" min="0" max="8" value="0" step="0.5">
                   <div class="slider-values">
@@ -289,7 +300,15 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="utility-bar-section" id="utility-bar-parcel-filters">
           <h3>Parcel Filters</h3>
           <div class="filter-group">
-              <label for="filter-priority-score">Priority Score:</label>
+              <label for="filter-priority-score">
+                  Priority Score:
+                  <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTCMRM2yMYCPlefSIVGLyBK582neo6SEZ4So0dKcFO60cxAp_LcLiBVy6avM-DGnruxd5lnFhV4rN2Z/pubhtml" target="_blank" rel="noopener noreferrer" 
+                     style="margin-left: 5px; font-size: 10px; padding: 2px 6px; background-color: #5a9fd4; color: white; 
+                            text-decoration: none; border-radius: 3px; display: inline-block; vertical-align: middle;"
+                     title="View methodology documentation">
+                      Methodology
+                  </a>
+              </label>
               <div class="slider-container">
                   <input type="range" id="filter-priority-score" min="0" max="60" value="0" step="1">
                   <div class="slider-values">
@@ -2740,7 +2759,8 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             currentFeatureKeys[i] == 'Final_SW_Score' ||
             currentFeatureKeys[i] == 'Source' ||
             currentFeatureKeys[i] == 'Source_Year' ||
-            currentFeatureKeys[i] == 'In_Critical_Recharge') {
+            currentFeatureKeys[i] == 'In_Critical_Recharge' ||
+            currentFeatureKeys[i] == 'globalID_text') {
             continue;
         }
 
@@ -2765,8 +2785,14 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
         var fieldName = layer.get('fieldAliases')[currentFeatureKeys[i]] || currentFeatureKeys[i];
         // Replace underscores with spaces and clean up field name
         fieldName = fieldName.replace(/_/g, ' ').replace(/\([^)]*\)/g, '').trim();
-        // Capitalize properly
+        // Capitalize properly, but preserve common acronyms
         fieldName = fieldName.replace(/\w\S*/g, function(txt) {
+            // List of acronyms that should stay uppercase
+            var acronyms = ['SRBC', 'HUC12', 'HUC', 'IBI', 'BMP', 'ID', 'PM', 'GW', 'CSC', 'NT', 'RB', 'SR', 'FR', 'CC', 'WR', 'SWP', 'LC', 'SW', 'WAP'];
+            var upperTxt = txt.toUpperCase();
+            if (acronyms.indexOf(upperTxt) !== -1) {
+                return upperTxt;
+            }
             return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
         });
         
@@ -2896,10 +2922,13 @@ function onPointerMove(evt) {
             }
             if (currentFeature) {
                 var featureStyle
+                var allStyles = null;
+                var resolution = map.getView().getResolution();
                 if (typeof clusteredFeatures == "undefined") {
 					var style = currentLayer.getStyle();
 					var styleFunction = typeof style === 'function' ? style : function() { return style; };
-					featureStyle = styleFunction(currentFeature)[0];
+					allStyles = styleFunction(currentFeature, resolution);
+					featureStyle = allStyles[0];
 				} else {
 					featureStyle = currentLayer.getStyle().toString();
 				}
@@ -2912,18 +2941,46 @@ function onPointerMove(evt) {
 						radius = parseFloat(featureStyle.split('radius')[1].split(' ')[1]) + clusterLength;
 					}
 
-                    highlightStyle = new ol.style.Style({
-                        image: new ol.style.Circle({
-                            fill: new ol.style.Fill({
-                                color: "rgba(255, 255, 0, 0.5)"
-                            }),
-                            stroke: new ol.style.Stroke({
-                                color: "#ffff00",
-                                width: 2
-                            }),
-                            radius: radius
+                    // Check if this is a multi-style point (has halo)
+                    if (allStyles && allStyles.length > 1) {
+                        // Create highlight styles for all point styles (halo + main)
+                        highlightStyle = function(feature) {
+                            var styles = [];
+                            for (var i = 0; i < allStyles.length; i++) {
+                                var originalStyle = allStyles[i];
+                                if (originalStyle.getImage()) {
+                                    var originalRadius = originalStyle.getImage().getRadius();
+                                    styles.push(new ol.style.Style({
+                                        image: new ol.style.Circle({
+                                            fill: new ol.style.Fill({
+                                                color: "rgba(255, 255, 0, 0.5)"
+                                            }),
+                                            stroke: new ol.style.Stroke({
+                                                color: "#ffff00",
+                                                width: 2
+                                            }),
+                                            radius: originalRadius
+                                        })
+                                    }));
+                                }
+                            }
+                            return styles;
+                        };
+                    } else {
+                        // Single style point (no halo)
+                        highlightStyle = new ol.style.Style({
+                            image: new ol.style.Circle({
+                                fill: new ol.style.Fill({
+                                    color: "rgba(255, 255, 0, 0.5)"
+                                }),
+                                stroke: new ol.style.Stroke({
+                                    color: "#ffff00",
+                                    width: 2
+                                }),
+                                radius: radius
+                            })
                         })
-                    })
+                    }
                 } else if (currentFeature.getGeometry().getType() == 'LineString' || currentFeature.getGeometry().getType() == 'MultiLineString') {
 
                     var featureWidth = featureStyle.getStroke().getWidth();
@@ -2999,7 +3056,7 @@ function onSingleClickFeatures(evt) {
     var currentFeatureKeys;
     var clusteredFeatures;
     var popupText = '<ul>';
-    var featuresToHighlight = []; // Track all features to highlight
+    var featuresToHighlight = []; // Track all features to highlight with their layers
     
     // Clear any existing highlights
     if (highlight) {
@@ -3029,8 +3086,8 @@ function onSingleClickFeatures(evt) {
                         popupText += '<table>';
                         popupText += createPopupField(currentFeature, currentFeatureKeys, layer);
                         popupText += '</table></li>';
-                        // Collect features for highlighting
-                        featuresToHighlight.push(currentFeature);
+                        // Collect features with their layers for highlighting
+                        featuresToHighlight.push({feature: currentFeature, layer: layer});
                     }
                 }
             } else {
@@ -3041,8 +3098,8 @@ function onSingleClickFeatures(evt) {
                     popupText += '<table>';
                     popupText += createPopupField(currentFeature, currentFeatureKeys, layer);
                     popupText += '</table>';
-                    // Collect feature for highlighting
-                    featuresToHighlight.push(currentFeature);
+                    // Collect feature with layer for highlighting
+                    featuresToHighlight.push({feature: currentFeature, layer: layer});
                 }
             }
         }
@@ -3050,38 +3107,83 @@ function onSingleClickFeatures(evt) {
     
     // Now add highlighting for all collected features after the loop
     if (featuresToHighlight.length > 0) {
-        for (var i = 0; i < featuresToHighlight.length; i++) {
-            var featureToHighlight = featuresToHighlight[i];
-            var highlightStyle;
-            if (featureToHighlight.getGeometry().getType() == 'Point' || featureToHighlight.getGeometry().getType() == 'MultiPoint') {
-                highlightStyle = new ol.style.Style({
-                    image: new ol.style.Circle({
-                        fill: new ol.style.Fill({
-                            color: "rgba(255, 255, 0, 0.5)"
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: "#ffff00",
-                            width: 2
-                        }),
-                        radius: 8
-                    })
-                });
-            } else {
-                highlightStyle = new ol.style.Style({
-                    fill: new ol.style.Fill({
-                        color: 'rgba(255, 255, 0, 0.3)'
-                    }),
-                    stroke: new ol.style.Stroke({
-                        color: '#ffff00',
-                        width: 2
-                    })
-                });
+        var resolution = map.getView().getResolution();
+        
+        // Create a style function that handles all features
+        var overlayStyleFunction = function(feature) {
+            // Find the matching feature info from our collection
+            for (var i = 0; i < featuresToHighlight.length; i++) {
+                if (featuresToHighlight[i].feature === feature) {
+                    var featureLayer = featuresToHighlight[i].layer;
+                    
+                    if (feature.getGeometry().getType() == 'Point' || feature.getGeometry().getType() == 'MultiPoint') {
+                        // Get all styles from the layer's style function
+                        var style = featureLayer.getStyle();
+                        var styleFunction = typeof style === 'function' ? style : function() { return style; };
+                        var allStyles = styleFunction(feature, resolution);
+                        
+                        // Check if this is a multi-style point (has halo)
+                        if (allStyles && allStyles.length > 1) {
+                            // Create highlight styles for all point styles (halo + main)
+                            var styles = [];
+                            for (var j = 0; j < allStyles.length; j++) {
+                                var originalStyle = allStyles[j];
+                                if (originalStyle.getImage()) {
+                                    var originalRadius = originalStyle.getImage().getRadius();
+                                    styles.push(new ol.style.Style({
+                                        image: new ol.style.Circle({
+                                            fill: new ol.style.Fill({
+                                                color: "rgba(255, 255, 0, 0.5)"
+                                            }),
+                                            stroke: new ol.style.Stroke({
+                                                color: "#ffff00",
+                                                width: 2
+                                            }),
+                                            radius: originalRadius
+                                        })
+                                    }));
+                                }
+                            }
+                            return styles;
+                        } else {
+                            // Single style point (no halo)
+                            return [new ol.style.Style({
+                                image: new ol.style.Circle({
+                                    fill: new ol.style.Fill({
+                                        color: "rgba(255, 255, 0, 0.5)"
+                                    }),
+                                    stroke: new ol.style.Stroke({
+                                        color: "#ffff00",
+                                        width: 2
+                                    }),
+                                    radius: 8
+                                })
+                            })];
+                        }
+                    } else {
+                        return [new ol.style.Style({
+                            fill: new ol.style.Fill({
+                                color: 'rgba(255, 255, 0, 0.3)'
+                            }),
+                            stroke: new ol.style.Stroke({
+                                color: '#ffff00',
+                                width: 2
+                            })
+                        })];
+                    }
+                }
             }
-            featureOverlay.getSource().addFeature(featureToHighlight);
-            featureOverlay.setStyle(highlightStyle);
+            return [];
+        };
+        
+        // Add all features to the overlay and set the style function once
+        for (var i = 0; i < featuresToHighlight.length; i++) {
+            featureOverlay.getSource().addFeature(featuresToHighlight[i].feature);
         }
+        featureOverlay.setStyle(overlayStyleFunction);
+        
         // Track the last feature for single highlight removal
-        highlight = featuresToHighlight[featuresToHighlight.length - 1];
+        highlight = featuresToHighlight[featuresToHighlight.length - 1].feature;
     }
     if (popupText === '<ul>') {
         popupText = '';

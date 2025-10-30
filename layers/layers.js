@@ -61,8 +61,8 @@ var lyr_Riparian_Forest_Buffer_4 = new ol.layer.Vector({
                 popuplayertitle: 'Riparian Forest Buffer',
                 interactive: false,
     title: 'Riparian Forest Buffer<br />\
-    <img src="styles/legend/Riparian_Forest_Buffer_4_0.png" /> Forested<br />\
-    <img src="styles/legend/Riparian_Forest_Buffer_4_1.png" /> Unforested<br />' });
+    <img src="styles/legend/Riparian_Forest_Buffer_4_0.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Forested<br />\
+    <img src="styles/legend/Riparian_Forest_Buffer_4_1.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Unforested<br />' });
 var format_Little_Conestoga_Streams_3 = new ol.format.GeoJSON();
 var features_Little_Conestoga_Streams_3 = format_Little_Conestoga_Streams_3.readFeatures(json_Little_Conestoga_Streams_3, 
             {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
@@ -77,7 +77,7 @@ var lyr_Little_Conestoga_Streams_3 = new ol.layer.Vector({
                 title: 'Little Conestoga Streams',
                 popuplayertitle: 'Little Conestoga Streams',
                 interactive: false,
-                title: '<img src="styles/legend/Little_Conestoga_Streams_3.png" /> Little Conestoga Streams'
+                title: '<img src="styles/legend/Little_Conestoga_Streams_3.png" width="24" height="24" style="vertical-align: middle;" /> Little Conestoga Streams'
             });
 
 // Placeholder variables for user-uploaded layers
@@ -102,11 +102,11 @@ function initializeUserLayers() {
                     popuplayertitle: 'Parcel Level Projects',
                     interactive: true,
         title: 'Parcel Level Projects<br />\
-        <img src="styles/legend/Parcel_Level_Projects_0.png" /> 1.1 - 7<br />\
-        <img src="styles/legend/Parcel_Level_Projects_1.png" /> 7 - 16<br />\
-        <img src="styles/legend/Parcel_Level_Projects_2.png" /> 16 - 23<br />\
-        <img src="styles/legend/Parcel_Level_Projects_3.png" /> 23 - 38<br />\
-        <img src="styles/legend/Parcel_Level_Projects_4.png" /> 38 - 57.2<br />' });
+        <img src="styles/legend/Parcel_Level_Projects_0.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> 1.1 - 7<br />\
+        <img src="styles/legend/Parcel_Level_Projects_1.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> 7 - 16<br />\
+        <img src="styles/legend/Parcel_Level_Projects_2.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> 16 - 23<br />\
+        <img src="styles/legend/Parcel_Level_Projects_3.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> 23 - 38<br />\
+        <img src="styles/legend/Parcel_Level_Projects_4.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> 38 - 57.2<br />' });
     
     // Initialize BMP Survey Points
     var format_BMP_Survey_Points = new ol.format.GeoJSON();
@@ -124,10 +124,10 @@ function initializeUserLayers() {
                     popuplayertitle: 'BMP Survey Points',
                     interactive: true,
         title: 'BMP Survey Points<br />\
-        <img src="styles/legend/BMP_Survey_Points_0.png" /> Stormwater<br />\
-        <img src="styles/legend/BMP_Survey_Points_1.png" /> Agricultural<br />\
-        <img src="styles/legend/BMP_Survey_Points_2.png" /> Implemented<br />\
-        <img src="styles/legend/BMP_Survey_Points_3.png" /> Planned<br />' });
+        <img src="styles/legend/BMP_Survey_Points_0.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Stormwater<br />\
+        <img src="styles/legend/BMP_Survey_Points_1.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Agricultural<br />\
+        <img src="styles/legend/BMP_Survey_Points_2.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Implemented<br />\
+        <img src="styles/legend/BMP_Survey_Points_3.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Planned<br />' });
     
     // Add layers to the features group
     var featuresGroup = null;
@@ -189,7 +189,7 @@ var lyr_HUC12_Boundaries_6 = new ol.layer.Vector({
                 title: 'HUC12 Boundaries',
                 popuplayertitle: 'HUC12 Boundaries',
                 interactive: false,
-                title: '<img src="styles/legend/HUC12_Boundaries_6.png" /> HUC12 Boundaries'
+                title: '<img src="styles/legend/HUC12_Boundaries_6.png" width="24" height="24" style="vertical-align: middle;" /> HUC12 Boundaries'
             });
 var format_Smallsheds_7 = new ol.format.GeoJSON();
 var features_Smallsheds_7 = format_Smallsheds_7.readFeatures(json_Smallsheds_7, 
@@ -205,7 +205,7 @@ var lyr_Smallsheds_7 = new ol.layer.Vector({
                 title: 'Small Watersheds',
                 popuplayertitle: 'Small Watersheds',
                 interactive: false,
-                title: '<img src="styles/legend/Smallsheds_7.png" /> Smallsheds'
+                title: '<img src="styles/legend/Smallsheds_7.png" width="24" height="24" style="vertical-align: middle;" /> Smallsheds'
             });
 var format_SRBC_Focus_Areas_8 = new ol.format.GeoJSON();
 var features_SRBC_Focus_Areas_8 = format_SRBC_Focus_Areas_8.readFeatures(json_SRBC_Focus_Areas_8, 
@@ -221,7 +221,7 @@ var lyr_SRBC_Focus_Areas_8 = new ol.layer.Vector({
                 title: 'SRBC Focus Areas',
                 popuplayertitle: 'SRBC Focus Areas',
                 interactive: false,
-                title: '<img src="styles/legend/SRBC_Focus_Areas_8.png" /> SRBC Focus Areas'
+                title: '<img src="styles/legend/SRBC_Focus_Areas_8.png" width="24" height="24" style="vertical-align: middle;" /> SRBC Focus Areas'
             });
 var format_Delisting_Catchments = new ol.format.GeoJSON();
 var features_Delisting_Catchments = format_Delisting_Catchments.readFeatures(json_Delisting_Catchments_0, 
@@ -236,7 +236,7 @@ var lyr_Delisting_Catchments = new ol.layer.Vector({
                 style: style_Delisting_Catchments,
                 popuplayertitle: 'Delisting Catchments',
                 interactive: false,
-                title: 'Delisting Catchments'
+                title: '<img src="styles/legend/Delisting_Catchments_0.png" width="24" height="24" style="vertical-align: middle;" /> Delisting Catchments'
             });
 var format_Municipality_Boundaries = new ol.format.GeoJSON();
 var features_Municipality_Boundaries = format_Municipality_Boundaries.readFeatures(json_Municipality_Boundaries_0, 
@@ -251,7 +251,7 @@ var lyr_Municipality_Boundaries = new ol.layer.Vector({
                 style: style_Municipality_Boundaries,
                 popuplayertitle: 'Municipality Boundaries',
                 interactive: false,
-                title: 'Municipality Boundaries'
+                title: '<img src="styles/legend/Municipality_Boundaries_0.png" width="24" height="24" style="vertical-align: middle;" /> Municipality Boundaries'
             });
 
 // Critical Recharge Area Footprint
@@ -266,7 +266,7 @@ var lyr_critical_recharge_area_footprint = new ol.layer.Vector({
     style: style_critical_recharge_area_footprint,
     popuplayertitle: "Critical Recharge Area Footprint",
     interactive: false,
-    title: 'Critical Recharge Area Footprint'
+    title: '<img src="styles/legend/Critical_Recharge_Area_Footprint_0.png" width="24" height="24" style="vertical-align: middle;" /> Critical Recharge Area Footprint'
 });
 
 lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(false);lyr_EsriWorldImagery_3.setVisible(true);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);
