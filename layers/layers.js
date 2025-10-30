@@ -124,9 +124,10 @@ function initializeUserLayers() {
                     popuplayertitle: 'BMP Survey Points',
                     interactive: true,
         title: 'BMP Survey Points<br />\
-        <img src="styles/legend/BMP_Survey_Points_0.png" /> Potential<br />\
-        <img src="styles/legend/BMP_Survey_Points_1.png" /> Implemented<br />\
-        <img src="styles/legend/BMP_Survey_Points_2.png" /> Planned<br />' });
+        <img src="styles/legend/BMP_Survey_Points_0.png" /> Stormwater<br />\
+        <img src="styles/legend/BMP_Survey_Points_1.png" /> Agricultural<br />\
+        <img src="styles/legend/BMP_Survey_Points_2.png" /> Implemented<br />\
+        <img src="styles/legend/BMP_Survey_Points_3.png" /> Planned<br />' });
     
     // Add layers to the features group
     var featuresGroup = null;
