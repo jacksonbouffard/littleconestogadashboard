@@ -15,6 +15,9 @@
         drawInteraction: null,
         selectInteraction: null,
         initialized: false,
+        tempFeature: null,  // Temporary storage for new unsaved features
+        originalProperties: null,  // Store original properties when editing existing features
+        isNewFeature: false,  // Track if current feature is new (not yet saved)
         
         /**
          * Initialize the feature editor
@@ -119,12 +122,25 @@
             this.selectInteraction.on('select', (e) => {
                 if (e.selected.length > 0) {
                     this.selectedFeature = e.selected[0];
+                    
+                    // Store original properties for potential rollback
+                    this.originalProperties = {};
+                    const props = this.selectedFeature.getProperties();
+                    for (let key in props) {
+                        if (key !== 'geometry') {
+                            this.originalProperties[key] = props[key];
+                        }
+                    }
+                    this.isNewFeature = false;
+                    
                     this.showFeatureForm(this.selectedFeature);
                     const deleteBtn = document.getElementById('delete-feature-btn');
                     if (deleteBtn) {
                         deleteBtn.disabled = false;
                     }
                 } else {
+                    // User clicked off - cancel any unsaved changes
+                    this.discardChanges();
                     this.selectedFeature = null;
                     this.hideFeatureForm();
                     const deleteBtn = document.getElementById('delete-feature-btn');
@@ -159,10 +175,49 @@
                 // Check if there's already a highlighted feature and auto-select it
                 if (typeof highlight !== 'undefined' && highlight) {
                     console.log('Auto-selecting highlighted feature');
-                    this.selectedFeature = highlight;
+                    
+                    // Find the actual feature in the editing layer's source
+                    // The highlight might be a reference to a feature from a different context
+                    const source = this.editingLayer.getSource();
+                    const allFeatures = source.getFeatures();
+                    let actualFeature = null;
+                    
+                    // Try to find by matching the feature ID or properties
+                    const highlightId = highlight.getId();
+                    if (highlightId) {
+                        actualFeature = source.getFeatureById(highlightId);
+                    }
+                    
+                    // If not found by ID, try to match by reference
+                    if (!actualFeature) {
+                        for (let i = 0; i < allFeatures.length; i++) {
+                            if (allFeatures[i] === highlight) {
+                                actualFeature = allFeatures[i];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Use the actual feature from the source, or fallback to highlight
+                    const featureToSelect = actualFeature || highlight;
+                    console.log('Feature to select:', featureToSelect);
+                    console.log('Feature properties:', featureToSelect.getProperties());
+                    
+                    this.selectedFeature = featureToSelect;
+                    
+                    // Store original properties for potential rollback
+                    this.originalProperties = {};
+                    const props = featureToSelect.getProperties();
+                    for (let key in props) {
+                        if (key !== 'geometry') {
+                            this.originalProperties[key] = props[key];
+                        }
+                    }
+                    this.isNewFeature = false;
+                    
                     this.selectInteraction.getFeatures().clear();
-                    this.selectInteraction.getFeatures().push(highlight);
-                    this.showFeatureForm(highlight);
+                    this.selectInteraction.getFeatures().push(featureToSelect);
+                    this.showFeatureForm(featureToSelect);
                     const deleteBtn = document.getElementById('delete-feature-btn');
                     if (deleteBtn) {
                         deleteBtn.disabled = false;
@@ -205,40 +260,45 @@
             });
             
             this.drawInteraction.on('drawend', (e) => {
-                // Create default properties for new feature
-                const newFeature = e.feature;
-                const defaultProps = this.getDefaultProperties();
-                
-                // Perform spatial auto-fill
-                const spatialProps = this.spatialAutoFill(newFeature);
-                
-                // Merge default properties with spatially-derived properties
-                const finalProps = Object.assign({}, defaultProps, spatialProps);
-                newFeature.setProperties(finalProps);
-                
-                // Show form for the new feature
-                setTimeout(() => {
-                    this.selectedFeature = newFeature;
-                    this.selectInteraction.getFeatures().clear();
-                    this.selectInteraction.getFeatures().push(newFeature);
-                    this.showFeatureForm(newFeature);
+                try {
+                    const newFeature = e.feature;
                     
-                    // Enable delete button for the new feature
-                    const deleteBtn = document.getElementById('delete-feature-btn');
-                    if (deleteBtn) {
-                        deleteBtn.disabled = false;
-                    }
+                    // Create default properties for new feature
+                    const defaultProps = this.getDefaultProperties();
                     
-                    // Update feature counter
-                    if (typeof window.updateFeatureCounts === 'function') {
-                        setTimeout(window.updateFeatureCounts, 100);
-                    }
+                    // Perform spatial auto-fill
+                    const spatialProps = this.spatialAutoFill(newFeature);
                     
-                    // Save to localStorage for persistence
-                    this.saveToLocalStorage();
+                    // Merge default properties with spatially-derived properties
+                    const finalProps = Object.assign({}, defaultProps, spatialProps);
+                    newFeature.setProperties(finalProps);
                     
-                    this.showStatus('New feature added with auto-filled location attributes.', 'success');
-                }, 100);
+                    // Mark as unsaved
+                    newFeature.set('__unsaved', true);
+                    
+                    // Store as temporary unsaved feature
+                    this.tempFeature = newFeature;
+                    this.isNewFeature = true;
+                    
+                    // Show form for the new feature
+                    setTimeout(() => {
+                        this.selectedFeature = newFeature;
+                        this.selectInteraction.getFeatures().clear();
+                        this.selectInteraction.getFeatures().push(newFeature);
+                        this.showFeatureForm(newFeature);
+                        
+                        // Enable delete button for the new feature
+                        const deleteBtn = document.getElementById('delete-feature-btn');
+                        if (deleteBtn) {
+                            deleteBtn.disabled = false;
+                        }
+                        
+                        this.showStatus('New feature created. Click Save to keep it, or Cancel to discard.', 'info');
+                    }, 100);
+                } catch (error) {
+                    console.error('Error in drawend handler:', error);
+                    this.showStatus('Error adding feature: ' + error.message, 'error');
+                }
                 
                 this.stopAddFeature();
             });
@@ -316,16 +376,18 @@
                 const value = props[field.name] || '';
                 const fieldType = field.type || 'text';
                 const readonlyAttr = field.readonly ? 'readonly' : '';
+                const requiredAttr = field.required ? 'required' : '';
+                const requiredStar = field.required ? '<span style="color: red;">*</span>' : '';
                 
                 formHTML += `
                     <div class="form-group">
-                        <label for="field-${field.name}">${field.label}:</label>
+                        <label for="field-${field.name}">${field.label}${requiredStar}:</label>
                 `;
                 
                 if (field.options) {
                     // Dropdown for specific fields
                     const onChangeAttr = field.name === 'Project_Type' ? 'onchange="FeatureEditor.updateBMPCategory(this.value)"' : '';
-                    formHTML += `<select id="field-${field.name}" name="${field.name}" class="form-control" ${onChangeAttr}>`;
+                    formHTML += `<select id="field-${field.name}" name="${field.name}" class="form-control" ${onChangeAttr} ${requiredAttr}>`;
                     formHTML += `<option value="">-- Select --</option>`;
                     for (const option of field.options) {
                         // Handle both simple strings and value/label objects
@@ -339,9 +401,9 @@
                     }
                     formHTML += `</select>`;
                 } else if (fieldType === 'textarea') {
-                    formHTML += `<textarea id="field-${field.name}" name="${field.name}" class="form-control" rows="3" ${readonlyAttr}>${value}</textarea>`;
+                    formHTML += `<textarea id="field-${field.name}" name="${field.name}" class="form-control" rows="3" ${readonlyAttr} ${requiredAttr}>${value}</textarea>`;
                 } else {
-                    formHTML += `<input type="${fieldType}" id="field-${field.name}" name="${field.name}" value="${value}" class="form-control" ${readonlyAttr}>`;
+                    formHTML += `<input type="${fieldType}" id="field-${field.name}" name="${field.name}" value="${value}" class="form-control" ${readonlyAttr} ${requiredAttr}>`;
                 }
                 
                 formHTML += `</div>`;
@@ -363,6 +425,19 @@
             // Attach form submit handler
             document.getElementById('feature-attribute-form').addEventListener('submit', (e) => {
                 e.preventDefault();
+                
+                // Validate required fields
+                const projectTypeField = document.getElementById('field-Project_Type');
+                if (!projectTypeField.value || projectTypeField.value === '') {
+                    this.showStatus('Error: Project Type is required!', 'error');
+                    projectTypeField.focus();
+                    projectTypeField.style.borderColor = 'red';
+                    return;
+                }
+                
+                // Clear any previous validation styling
+                projectTypeField.style.borderColor = '';
+                
                 this.saveFeatureAttributes(feature, e.target);
             });
         },
@@ -394,15 +469,53 @@
         },
         
         /**
+         * Discard unsaved changes
+         */
+        discardChanges: function() {
+            if (this.isNewFeature && this.tempFeature) {
+                // New feature that was never saved - remove from source
+                console.log('Discarding new unsaved feature');
+                const source = this.editingLayer.getSource();
+                if (source.hasFeature(this.tempFeature)) {
+                    source.removeFeature(this.tempFeature);
+                }
+                this.tempFeature = null;
+                this.isNewFeature = false;
+            } else if (this.originalProperties && this.selectedFeature) {
+                // Existing feature being edited - restore original properties
+                console.log('Restoring original properties for edited feature');
+                for (let key in this.originalProperties) {
+                    this.selectedFeature.set(key, this.originalProperties[key]);
+                }
+                this.selectedFeature.changed();
+                
+                // Force refresh of the feature
+                const source = this.editingLayer.getSource();
+                source.changed();
+            }
+            
+            // Clear tracking variables
+            this.originalProperties = null;
+            this.isNewFeature = false;
+            this.tempFeature = null;
+        },
+        
+        /**
          * Cancel editing
          */
         cancelEdit: function() {
+            // Discard any unsaved changes
+            this.discardChanges();
+            
             if (this.selectInteraction) {
                 this.selectInteraction.getFeatures().clear();
             }
             this.selectedFeature = null;
             this.hideFeatureForm();
             document.getElementById('delete-feature-btn').disabled = true;
+            
+            // Clear the popup and highlight overlay
+            this.clearPopupAndHighlight();
         },
         
         /**
@@ -412,6 +525,7 @@
             const formData = new FormData(form);
             
             console.log('=== SAVING FEATURE ATTRIBUTES ===');
+            console.log('Is new feature:', this.isNewFeature);
             console.log('Before update - Implemented:', feature.get('Implemented'));
             console.log('Before update - BMP_Category:', feature.get('BMP_Category'));
             
@@ -438,18 +552,29 @@
             console.log('After update - BMP_Category:', feature.get('BMP_Category'));
             console.log('All properties:', feature.getProperties());
             
-            // Notify that feature properties changed
-            feature.changed();
-            
-            // Force the layer source to re-render - remove and re-add the feature
+            // If this is a new feature, mark it as saved
             const source = this.editingLayer.getSource();
-            source.removeFeature(feature);
-            source.addFeature(feature);
+            if (this.isNewFeature) {
+                console.log('Marking new feature as saved');
+                // Remove the unsaved flag
+                feature.unset('__unsaved');
+                // Feature is already in source, just mark as saved
+                feature.changed();
+            } else {
+                // For existing features, force re-render
+                feature.changed();
+                source.changed();
+            }
             
             // Force a complete map render
             if (this.map) {
                 this.map.render();
             }
+            
+            // Clear tracking variables since changes are now saved
+            this.isNewFeature = false;
+            this.tempFeature = null;
+            this.originalProperties = null;
             
             // Save to localStorage for persistence
             this.saveToLocalStorage();
@@ -696,6 +821,68 @@
             
             const properties = {};
             
+            // Check Parcels for Landowner and Address (OPTIMIZED with spatial indexing)
+            try {
+                // Try to access parcel data from the global variable
+                let parcelData = null;
+                if (typeof json_Little_Constoga_Parcels_0 !== 'undefined' && json_Little_Constoga_Parcels_0) {
+                    parcelData = json_Little_Constoga_Parcels_0;
+                } else if (typeof window.json_Little_Constoga_Parcels_0 !== 'undefined' && window.json_Little_Constoga_Parcels_0) {
+                    parcelData = window.json_Little_Constoga_Parcels_0;
+                }
+                
+                if (parcelData) {
+                    // Create temporary parcel layer from GeoJSON data if not already created
+                    if (!this.parcelLayer) {
+                        console.log('Creating parcel layer for spatial queries...');
+                        const format = new ol.format.GeoJSON();
+                        const features = format.readFeatures(parcelData, {
+                            dataProjection: 'EPSG:4326',
+                            featureProjection: 'EPSG:3857'
+                        });
+                        console.log('Loaded', features.length, 'parcel features with spatial indexing');
+                        const source = new ol.source.Vector({
+                            features: features,
+                            useSpatialIndex: true  // Enable R-tree spatial index for fast queries
+                        });
+                        this.parcelLayer = new ol.layer.Vector({
+                            source: source,
+                            visible: false  // Keep hidden
+                        });
+                    }
+                    
+                    const parcelSource = this.parcelLayer.getSource();
+                    
+                    // Use spatial index to get features near the point (much faster than iterating all features)
+                    // Create a small buffer around the point for the query
+                    const extent = [coordinate[0] - 1, coordinate[1] - 1, coordinate[0] + 1, coordinate[1] + 1];
+                    const candidateFeatures = [];
+                    
+                    parcelSource.forEachFeatureIntersectingExtent(extent, function(parcel) {
+                        candidateFeatures.push(parcel);
+                    });
+                    
+                    console.log('Spatial index returned', candidateFeatures.length, 'candidate parcels');
+                    
+                    // Now check only the candidate features (typically just 1-2 instead of 32,000!)
+                    for (let i = 0; i < candidateFeatures.length; i++) {
+                        const parcel = candidateFeatures[i];
+                        const parcelGeom = parcel.getGeometry();
+                        if (parcelGeom && parcelGeom.intersectsCoordinate(coordinate)) {
+                            properties.Landowner = parcel.get('Landowner_parcel') || '';
+                            properties.Address = parcel.get('Address_parcel') || '';
+                            console.log('Found parcel match:', properties.Landowner, properties.Address);
+                            break;
+                        }
+                    }
+                } else {
+                    console.log('Parcel data not found - checking available variables:', typeof json_Little_Constoga_Parcels_0);
+                }
+            } catch (error) {
+                console.error('Error loading parcel data for auto-fill:', error);
+                // Continue without parcel data - don't break the whole function
+            }
+            
             // Check Municipality
             if (typeof lyr_Municipality_Boundaries !== 'undefined') {
                 const municipalitySource = lyr_Municipality_Boundaries.getSource();
@@ -760,6 +947,21 @@
                 }
             }
             
+            // Check Smallshed
+            if (typeof lyr_Smallsheds_7 !== 'undefined') {
+                const smallshedSource = lyr_Smallsheds_7.getSource();
+                const smallshedFeatures = smallshedSource.getFeatures();
+                
+                for (let i = 0; i < smallshedFeatures.length; i++) {
+                    const smallshed = smallshedFeatures[i];
+                    const smallshedGeom = smallshed.getGeometry();
+                    if (smallshedGeom && smallshedGeom.intersectsCoordinate(coordinate)) {
+                        properties.Smallshed = smallshed.get('NAME') || '';
+                        break;
+                    }
+                }
+            }
+            
             // Check Priority Subwatershed (from Delisting Catchments)
             if (typeof lyr_Delisting_Catchments !== 'undefined') {
                 const catchmentSource = lyr_Delisting_Catchments.getSource();
@@ -814,6 +1016,7 @@
                 Municipality: '',
                 HUC12_Code: '',
                 HUC12_Name: '',
+                Smallshed: '',
                 In_Critical_Recharge: 0,
                 SRBC_Focus_Area_Name: '',
                 SRBC_Focus_Purpose: '',
@@ -828,10 +1031,11 @@
          */
         getEditableFields: function() {
             return [
-                { name: 'Project_Type', label: 'Project Type', options: [
+                // User-editable fields
+                { name: 'Project_Type', label: 'Project Type', required: true, options: [
                     { value: 'PM', label: 'PM - Pasture Management' },
                     { value: 'GW', label: 'GW - Grassed Waterway' },
-                    { value: 'T/D', label: 'T&D - Terraces/Diversions' },
+                    { value: 'T&D', label: 'T&D - Terraces & Diversions' },
                     { value: 'CSC', label: 'CSC - Contour Strip Cropping' },
                     { value: 'NT', label: 'NT - No-Till' },
                     { value: 'RB', label: 'RB - Riparian Buffer' },
@@ -839,26 +1043,29 @@
                     { value: 'FR', label: 'FR - Floodplain Restoration' },
                     { value: 'CC', label: 'CC - Cover Crop' },
                     { value: 'WR', label: 'WR - Wetland Restoration' },
+                    { value: 'BRC', label: 'BRC - Barnyard Runoff Control' },
+                    { value: 'AR', label: 'AR - Access Road' },
+                    { value: 'SC', label: 'SC - Stream Crossing' },
                     { value: 'SWR', label: 'SWR - Stormwater Retrofit' },
-                    { value: 'BSR', label: 'BSR - Bioswale/Rain Garden' },
-                    { value: 'PP', label: 'PP - Porous Pavement' },
+                    { value: 'BSR', label: 'BSR - Bioswale Retrofit' },
+                    { value: 'PP', label: 'PP - Pervious Pavement' },
                     { value: 'BI', label: 'BI - Bioinfiltration' }
                 ]},
-                { name: 'Landowner', label: 'Landowner', type: 'text' },
                 { name: 'BMP_Category', label: 'BMP Category', type: 'text', readonly: true },
                 { name: 'Implemented', label: 'Implementation Status', options: [
                     { value: 'no', label: 'Potential' },
                     { value: 'yes', label: 'Implemented' },
                     { value: 'planned', label: 'Planned' }
                 ]},
-                { name: 'Project_Description', label: 'Project Description', type: 'textarea' },
+                { name: 'Landowner', label: 'Landowner', type: 'text', readonly: true },
+                { name: 'Address', label: 'Address', type: 'text', readonly: true },
+                { name: 'Municipality', label: 'Municipality', type: 'text', readonly: true },
                 { name: 'Source', label: 'Source', type: 'text' },
                 { name: 'Source_Year', label: 'Source Year', type: 'number' },
-                { name: 'Municipality', label: 'Municipality', type: 'text' },
-                { name: 'HUC12_Name', label: 'HUC12 Name', type: 'text' },
-                { name: 'Priority_Subwatershed', label: 'Priority Subwatershed', type: 'text' },
-                { name: 'Priority_Score', label: 'Priority Score', type: 'number' },
-                { name: 'Address', label: 'Address', type: 'text' }
+                { name: 'Project_Description', label: 'Project Description', type: 'textarea' },
+                { name: 'HUC12_Name', label: 'HUC12 Name', type: 'text', readonly: true },
+                { name: 'Smallshed', label: 'Smallshed', type: 'text', readonly: true },
+                { name: 'Priority_Subwatershed', label: 'Priority Subwatershed', type: 'text', readonly: true }
             ];
         },
         

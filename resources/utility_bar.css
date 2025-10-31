@@ -308,7 +308,8 @@ body {
 .collapse-icon-bmp,
 .collapse-icon-implementation,
 .collapse-icon-conservation,
-.collapse-icon-municipality {
+.collapse-icon-municipality,
+.collapse-icon-smallshed {
   font-size: 10px;
   transition: transform 0.3s ease;
 }
@@ -318,7 +319,8 @@ body {
 .collapse-icon-bmp.collapsed,
 .collapse-icon-implementation.collapsed,
 .collapse-icon-conservation.collapsed,
-.collapse-icon-municipality.collapsed {
+.collapse-icon-municipality.collapsed,
+.collapse-icon-smallshed.collapsed {
   transform: rotate(-90deg);
 }
 

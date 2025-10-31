@@ -181,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   <label><input type="checkbox" value="GW"> GW - Grassed Waterway</label>
                   <label><input type="checkbox" value="WR"> WR - Wetland Restoration</label>
                   <label><input type="checkbox" value="BRC"> BRC - Barnyard Runoff Control</label>
+                  <label><input type="checkbox" value="AR"> AR - Access Road</label>
+                  <label><input type="checkbox" value="SC"> SC - Stream Crossing</label>
                   <label><input type="checkbox" value="CL"> CL - Conservation Landscaping</label>
                   <label><input type="checkbox" value="NT"> NT - No-Till</label>
                   <label><input type="checkbox" value="PM"> PM - Pasture Management</label>
@@ -196,6 +198,22 @@ document.addEventListener('DOMContentLoaded', function() {
                   <label><input type="checkbox" value="Co77"> Co77 -  Indian Run Headwaters South</label>
                   <label><input type="checkbox" value="Co99"> Co99 - Swarr Run Headwaters</label>
                   <label><input type="checkbox" value="Nonpriority Area"> Nonpriority Area</label>
+              </div>
+          </div>
+          <div class="filter-group">
+              <label class="collapsible-label-smallshed" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Smallsheds:</span> <span class="collapse-icon-smallshed">▼</span>
+              </label>
+              <div class="checkbox-group collapsed" id="filter-smallshed">
+                  <label><input type="checkbox" value="LITTLE CONESTOGA CREEK - HEADWATERS"> Little Conestoga Creek - Headwaters</label>
+                  <label><input type="checkbox" value="LITTLE CONESTOGA CREEK - UPPER MID"> Little Conestoga Creek - Upper Mid</label>
+                  <label><input type="checkbox" value="LITTLE CONESTOGA CREEK - LOWER MID"> Little Conestoga Creek - Lower Mid</label>
+                  <label><input type="checkbox" value="LITTLE CONESTOGA CREEK - DRAINAGE"> Little Conestoga Creek - Drainage</label>
+                  <label><input type="checkbox" value="WEST BRANCH LITTLE CONESTOGA CREEK"> West Branch Little Conestoga Creek</label>
+                  <label><input type="checkbox" value="BRUBAKER RUN"> Brubaker Run</label>
+                  <label><input type="checkbox" value="INDIAN RUN"> Indian Run</label>
+                  <label><input type="checkbox" value="MILLERS RUN"> Millers Run</label>
+                  <label><input type="checkbox" value="SWARR RUN"> Swarr Run</label>
               </div>
           </div>
           <div class="filter-group">
@@ -402,6 +420,13 @@ document.addEventListener('DOMContentLoaded', function() {
       selectedSubwatersheds.push(checkbox.value);
     });
     
+    // Get selected smallsheds from checkboxes
+    var selectedSmallsheds = [];
+    var smallshedCheckboxes = document.querySelectorAll('#filter-smallshed input[type="checkbox"]:checked');
+    smallshedCheckboxes.forEach(function(checkbox) {
+      selectedSmallsheds.push(checkbox.value);
+    });
+    
     // Get selected SRBC focus areas from checkboxes
     var selectedSrbcAreas = [];
     var srbcCheckboxes = document.querySelectorAll('#filter-srbc-focus input[type="checkbox"]:checked');
@@ -508,6 +533,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by Priority_Subwatershed (if any are selected)
         if (selectedSubwatersheds.length > 0) {
           if (!props.Priority_Subwatershed || selectedSubwatersheds.indexOf(props.Priority_Subwatershed) === -1) {
+            show = false;
+          }
+        }
+        
+        // Filter by Smallshed (if any are selected)
+        if (selectedSmallsheds.length > 0) {
+          if (!props.Smallshed || selectedSmallsheds.indexOf(props.Smallshed) === -1) {
             show = false;
           }
         }
@@ -629,6 +661,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by Priority_Subwatershed (if any are selected)
         if (selectedSubwatersheds.length > 0) {
           if (!props.Priority_Subwatershed || selectedSubwatersheds.indexOf(props.Priority_Subwatershed) === -1) {
+            show = false;
+          }
+        }
+        
+        // Filter by Smallshed (if any are selected)
+        if (selectedSmallsheds.length > 0) {
+          if (!props.Smallshed || selectedSmallsheds.indexOf(props.Smallshed) === -1) {
             show = false;
           }
         }
@@ -862,6 +901,55 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
+    // Handle Smallsheds layer visibility and filtering
+    var smallshedsLayer = null;
+    if (boundariesGroup) {
+      var boundaryLayers = boundariesGroup.getLayers ? boundariesGroup.getLayers().getArray() : [];
+      boundaryLayers.forEach(function(layer) {
+        var title = layer.get('title');
+        if (title && title.indexOf('Smallsheds') !== -1) {
+          smallshedsLayer = layer;
+          console.log('Found Smallsheds layer');
+        }
+      });
+    }
+    
+    if (smallshedsLayer) {
+      // Turn layer on if any smallsheds are selected, off if none
+      if (selectedSmallsheds.length > 0) {
+        smallshedsLayer.setVisible(true);
+        console.log('Smallsheds layer turned ON, filtering to:', selectedSmallsheds);
+        
+        // Filter the layer features
+        var source = smallshedsLayer.getSource();
+        var features = source.getFeatures();
+        console.log('Total Smallsheds features:', features.length);
+        
+        features.forEach(function(feature) {
+          var props = feature.getProperties();
+          var showFeature = false;
+          
+          console.log('Smallshed Feature NAME:', props.NAME);
+          
+          // Check if this feature's NAME is in the selected list
+          if (props.NAME && selectedSmallsheds.indexOf(props.NAME) !== -1) {
+            showFeature = true;
+            console.log('  -> Showing this feature');
+          }
+          
+          // Set feature visibility
+          feature.setStyle(showFeature ? null : new ol.style.Style({}));
+        });
+        
+        source.changed();
+      } else {
+        smallshedsLayer.setVisible(false);
+        console.log('Smallsheds layer turned OFF (no selections)');
+      }
+    } else {
+      console.log('Smallsheds layer not found!');
+    }
+    
     // Handle Municipality Boundaries layer visibility and filtering
     var municipalityBoundariesLayer = null;
     if (boundariesGroup) {
@@ -1034,6 +1122,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (srbcChecked > 0) {
         filtersActive = true;
         console.log('Filters active: SRBC');
+      }
+    }
+    
+    // Check if any smallsheds are selected (default is none, so any selection = filter active)
+    var smallshedCheckboxes = document.querySelectorAll('#filter-smallshed input[type="checkbox"]');
+    if (smallshedCheckboxes.length > 0) {
+      var smallshedChecked = Array.from(smallshedCheckboxes).filter(cb => cb.checked).length;
+      if (smallshedChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: smallsheds');
       }
     }
     
@@ -1413,6 +1511,22 @@ document.addEventListener('DOMContentLoaded', function() {
     collapseIconSrbc.classList.toggle('collapsed');
   });
   
+  // Add event listeners for all smallshed checkboxes
+  var smallshedCheckboxes = document.querySelectorAll('#filter-smallshed input[type="checkbox"]');
+  smallshedCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', applyFilters);
+  });
+  
+  // Add collapsible functionality for Smallsheds
+  var collapsibleLabelSmallshed = document.querySelector('.collapsible-label-smallshed');
+  var smallshedGroup = document.getElementById('filter-smallshed');
+  var collapseIconSmallshed = document.querySelector('.collapse-icon-smallshed');
+  
+  collapsibleLabelSmallshed.addEventListener('click', function() {
+    smallshedGroup.classList.toggle('collapsed');
+    collapseIconSmallshed.classList.toggle('collapsed');
+  });
+  
   // Clear All Filters button event listener
   var clearFiltersBtn = document.getElementById('clear-all-filters-btn');
   if (clearFiltersBtn) {
@@ -1462,6 +1576,12 @@ document.addEventListener('DOMContentLoaded', function() {
       // Uncheck all priority subwatershed checkboxes (default = none checked, shows all)
       var subwatershedCheckboxes = document.querySelectorAll('#filter-priority-subwatershed input[type="checkbox"]');
       subwatershedCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all smallshed checkboxes (default = none checked, shows all)
+      var smallshedCheckboxes = document.querySelectorAll('#filter-smallshed input[type="checkbox"]');
+      smallshedCheckboxes.forEach(function(checkbox) {
         checkbox.checked = false;
       });
       
