@@ -1848,6 +1848,13 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('Sidebar opened, feature counter moved right');
       }
       
+      // Move feature editor when sidebar opens
+      var featureEditor = document.getElementById('feature-editor-panel');
+      if (featureEditor) {
+          featureEditor.classList.add('sidebar-open');
+          console.log('Sidebar opened, feature editor moved right');
+      }
+      
       // Add close button to body (not sidebar) if not present
       if (!document.querySelector('.utility-bar-close')) {
         var utilityBarClose = document.createElement('div');
@@ -1864,6 +1871,13 @@ document.addEventListener('DOMContentLoaded', function() {
           if (featureCounter) {
               featureCounter.classList.remove('sidebar-open');
               console.log('Sidebar closed, feature counter moved left');
+          }
+          
+          // Move feature editor back when sidebar closes
+          var featureEditor = document.getElementById('feature-editor-panel');
+          if (featureEditor) {
+              featureEditor.classList.remove('sidebar-open');
+              console.log('Sidebar closed, feature editor moved left');
           }
         };
         document.body.appendChild(utilityBarClose);
@@ -1955,7 +1969,8 @@ map.getView().setProperties({constrainResolution: true});
         '<div id="bmp-counter" class="counter-row"></div>' +
         '<div id="parcel-counter" class="counter-row"></div>' +
         '<div class="counter-download-section">' +
-        '<button id="download-filtered-btn" class="counter-download-btn" title="Download filtered features">⬇ Download Filtered Content</button>' +
+        '<button id="download-filtered-btn" class="counter-download-btn" title="Download filtered features">⬇ Download Features</button>' +
+        '<button id="edit-features-btn" class="counter-download-btn counter-edit-btn" title="Edit BMP features">Edit</button>' +
         '</div>' +
         '</div>';
     document.body.appendChild(featureCounter);
@@ -1966,7 +1981,7 @@ map.getView().setProperties({constrainResolution: true});
     downloadModal.className = 'download-modal hidden';
     downloadModal.innerHTML = '<div class="download-modal-content">' +
         '<div class="download-modal-header">' +
-        '<h3>Download Filtered Content</h3>' +
+        '<h3>Download Features</h3>' +
         '<button id="download-modal-close" class="download-modal-close">×</button>' +
         '</div>' +
         '<div class="download-modal-body">' +
@@ -1982,12 +1997,13 @@ map.getView().setProperties({constrainResolution: true});
         '</label>' +
         '</div>' +
         '<label for="download-filename" style="margin-top: 15px;">File Name:</label>' +
-        '<input type="text" id="download-filename" class="download-filename-input" value="little_conestoga_filtered_data_' + new Date().toISOString().slice(0,10) + '">' +
+        '<input type="text" id="download-filename" class="download-filename-input" value="little_conestoga_data_' + new Date().toISOString().slice(0,10) + '">' +
         '<label for="download-format" style="margin-top: 15px;">Format:</label>' +
         '<select id="download-format" class="download-format-select">' +
         '<option value="excel">Excel Spreadsheet (.xlsx)</option>' +
         '<option value="csv">CSV - Comma Separated Values</option>' +
         '<option value="geojson">GeoJSON - Geographic JSON</option>' +
+        '<option value="js">JavaScript (.js) - Re-uploadable format</option>' +
         '</select>' +
         '<div class="download-help-section" style="margin-top: 20px; padding: 12px; background-color: #f0f0f0; border-radius: 4px; font-size: 13px;">' +
         '<strong>Importing Data to ArcGIS Pro:</strong>' +
@@ -2008,6 +2024,20 @@ map.getView().setProperties({constrainResolution: true});
     // Add download button event listener
     document.getElementById('download-filtered-btn').addEventListener('click', function() {
         openDownloadModal();
+    });
+    
+    // Add edit button event listener
+    document.getElementById('edit-features-btn').addEventListener('click', function() {
+        if (typeof FeatureEditor !== 'undefined') {
+            const panel = document.getElementById('feature-editor-panel');
+            if (panel && panel.style.display === 'block') {
+                FeatureEditor.closeEditor();
+            } else {
+                FeatureEditor.show();
+            }
+        } else {
+            console.warn('FeatureEditor not yet initialized');
+        }
     });
     
     // Modal event listeners
@@ -2049,7 +2079,7 @@ map.getView().setProperties({constrainResolution: true});
     // Function to open download modal
     function openDownloadModal() {
         // Update default filename with current date
-        var defaultFilename = 'little_conestoga_filtered_data_' + new Date().toISOString().slice(0,10);
+        var defaultFilename = 'little_conestoga_data_' + new Date().toISOString().slice(0,10);
         document.getElementById('download-filename').value = defaultFilename;
         
         // Check which layers are currently visible and have features
@@ -2289,6 +2319,8 @@ map.getView().setProperties({constrainResolution: true});
             downloadAsCSV(visibleFeatures, filename);
         } else if (format === 'geojson') {
             downloadAsGeoJSON(visibleFeatures, filename);
+        } else if (format === 'js') {
+            downloadAsJS(visibleFeatures, filename, includeBMP, includeParcel);
         }
     };
     
@@ -2579,6 +2611,71 @@ map.getView().setProperties({constrainResolution: true});
         });
     }
 
+    // Function to export as JavaScript .js file (re-uploadable format)
+    function downloadAsJS(visibleFeatures, filename, includeBMP, includeParcel) {
+        var format = new ol.format.GeoJSON();
+        
+        // Only export BMP layer as .js (since that's the editable layer)
+        if (includeBMP) {
+            var bmpFeatures = visibleFeatures.filter(function(item) {
+                return item.layerType === 'BMP Survey Points';
+            });
+            
+            if (bmpFeatures.length > 0) {
+                var geojson = {
+                    type: 'FeatureCollection',
+                    features: []
+                };
+                
+                bmpFeatures.forEach(function(item) {
+                    var geom = item.feature.getGeometry();
+                    var props = {};
+                    var originalProps = item.feature.getProperties();
+                    for (var key in originalProps) {
+                        if (key !== 'geometry' && key !== 'layerObject' && key !== 'idO') {
+                            props[key] = originalProps[key];
+                        }
+                    }
+                    
+                    var olFeature = new ol.Feature({
+                        geometry: geom
+                    });
+                    olFeature.setProperties(props);
+                    
+                    var geoJsonFeature = format.writeFeatureObject(olFeature, {
+                        dataProjection: 'EPSG:4326',
+                        featureProjection: map.getView().getProjection()
+                    });
+                    
+                    geojson.features.push(geoJsonFeature);
+                });
+                
+                // Create JavaScript file content
+                var jsContent = 'var json_BMP_Survey_Points = ' + JSON.stringify(geojson, null, 2) + ';';
+                
+                // Save to localStorage for persistence
+                localStorage.setItem('bmp_edited_data', jsContent);
+                console.log('BMP data saved to localStorage for persistence');
+                
+                var blob = new Blob([jsContent], { type: 'application/javascript' });
+                var link = document.createElement('a');
+                var url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename + '_BMP_Survey_Points.js');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Note: Parcel layer export as .js could be added here if needed
+        if (includeParcel) {
+            console.log('Parcel layer .js export not implemented yet');
+        }
+    }
+
     
     // Function to export as ESRI Shapefile (zipped)
     
@@ -2652,6 +2749,18 @@ closer.onclick = function() {
     // Remove all highlights when popup is closed
     featureOverlay.getSource().clear();
     highlight = null;
+    
+    // Deselect feature in editor if it exists
+    if (typeof FeatureEditor !== 'undefined' && FeatureEditor.selectInteraction) {
+        FeatureEditor.selectInteraction.getFeatures().clear();
+        FeatureEditor.selectedFeature = null;
+        FeatureEditor.hideFeatureForm();
+        var deleteBtn = document.getElementById('delete-feature-btn');
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+        }
+    }
+    
     return false;
 };
 var overlayPopup = new ol.Overlay({

@@ -173,6 +173,11 @@ function initializeUserLayers() {
     if (typeof window.updateFeatureCounts === 'function') {
         setTimeout(window.updateFeatureCounts, 100);
     }
+    
+    // Initialize Feature Editor for BMP layer
+    if (typeof window.initializeFeatureEditor === 'function') {
+        setTimeout(window.initializeFeatureEditor, 200);
+    }
 }
 
 var format_HUC12_Boundaries_6 = new ol.format.GeoJSON();

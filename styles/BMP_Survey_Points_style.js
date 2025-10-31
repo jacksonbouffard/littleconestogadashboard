@@ -37,7 +37,7 @@ var style_BMP_Survey_Points = function(feature, resolution){
     
     // Helper function to create implementation status halo
     function createImplementationHalo(feature, scale) {
-        var implementationStatus = feature.get("Implemented");
+        var implementationStatus = feature.get("Implemented") || feature.get("Project_Progress_Status");
         if (implementationStatus === "yes") {
             return new ol.style.Style({
                 image: new ol.style.Circle({

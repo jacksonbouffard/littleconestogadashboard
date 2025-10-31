@@ -365,6 +365,19 @@ td video {
     background-color: #3a7fb4;
 }
 
+#feature-counter .counter-edit-btn {
+    background-color: #28a745;
+    border-color: #218838;
+}
+
+#feature-counter .counter-edit-btn:hover {
+    background-color: #218838;
+}
+
+#feature-counter .counter-edit-btn:active {
+    background-color: #1e7e34;
+}
+
 /* Download Modal */
 .download-modal {
     position: fixed;

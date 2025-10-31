@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="./resources/ol-layerswitcher.css">
     <link rel="stylesheet" href="./resources/qgis2web.css">
     <link rel="stylesheet" href="resources/utility_bar.css">
+    <link rel="stylesheet" href="resources/feature_editor.css">
         <style>
         html, body {
             background-color: #ffffff;
@@ -335,6 +336,7 @@
         <script src="./layers/layers.js" type="text/javascript"></script> 
         <script src="./resources/Autolinker.min.js"></script>
         <script src="./resources/qgis2web.js"></script>
+        <script src="./resources/feature_editor.js"></script>
         
         <!-- File Upload Handler -->
         <script>
@@ -502,6 +504,56 @@
             function updateStatus() {
                 // This function can be extended for more detailed status updates
             }
+            
+            /**
+             * Initialize Feature Editor
+             * Called after BMP layer is loaded
+             */
+            function initializeFeatureEditor() {
+                // Wait for map to be ready
+                if (typeof map === 'undefined' || typeof lyr_BMP_Survey_Points === 'undefined') {
+                    console.log('Waiting for map and BMP layer to be ready...');
+                    setTimeout(initializeFeatureEditor, 500);
+                    return;
+                }
+                
+                // Initialize the editor with the BMP layer
+                FeatureEditor.init(map, lyr_BMP_Survey_Points);
+                
+                // Watch for sidebar changes to adjust editor position
+                const observer = new MutationObserver(function() {
+                    if (typeof FeatureEditor !== 'undefined' && FeatureEditor.updatePositionForSidebar) {
+                        FeatureEditor.updatePositionForSidebar();
+                    }
+                });
+                
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    observer.observe(sidebar, {
+                        attributes: true,
+                        attributeFilter: ['class']
+                    });
+                }
+                
+                console.log('Feature Editor initialized successfully!');
+            }
+            
+            /**
+             * Open the Feature Editor panel
+             */
+            function openFeatureEditor() {
+                FeatureEditor.show();
+            }
+            
+            // Auto-initialize editor when layers are loaded
+            window.addEventListener('load', function() {
+                // Give the map time to initialize
+                setTimeout(function() {
+                    if (typeof lyr_BMP_Survey_Points !== 'undefined') {
+                        initializeFeatureEditor();
+                    }
+                }, 1000);
+            });
         </script>
     </body>
 </html>

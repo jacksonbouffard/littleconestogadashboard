@@ -189,7 +189,7 @@ body {
 /* Close button for sidebar - positioned as a lip jutting into the map */
 .utility-bar-close {
   position: fixed;
-  top: 50%;
+  top: 75%;
   left: 320px;
   transform: translateY(-50%) translateX(-100px);
   width: 36px;
