@@ -25,7 +25,8 @@
         init: function(map, layer) {
             // Prevent double initialization
             if (this.initialized) {
-                console.warn('Feature Editor already initialized, skipping...');
+                console.warn('Feature Editor already initialized, updating layer reference...');
+                this.updateLayer(layer);
                 return;
             }
             
@@ -51,6 +52,45 @@
             
             this.initialized = true;
             console.log('Feature Editor initialized. Edit mode:', this.enabled);
+        },
+        
+        /**
+         * Update the editing layer reference (when new data is loaded)
+         */
+        updateLayer: function(newLayer) {
+            console.log('Updating Feature Editor layer reference...');
+            
+            // Store the old enabled state
+            const wasEnabled = this.enabled;
+            
+            // If editing was enabled, disable it first
+            if (this.enabled) {
+                this.toggleEditMode(); // This will disable it
+            }
+            
+            // Update the layer reference
+            this.editingLayer = newLayer;
+            
+            // Recreate the select interaction with the new layer
+            if (this.selectInteraction) {
+                if (this.map) {
+                    this.map.removeInteraction(this.selectInteraction);
+                }
+                this.setupInteractions();
+            }
+            
+            // Update original data reference
+            if (window.json_BMP_Survey_Points) {
+                this.originalData = JSON.parse(JSON.stringify(window.json_BMP_Survey_Points));
+            }
+            
+            // Re-enable editing if it was enabled before
+            if (wasEnabled) {
+                this.toggleEditMode(); // This will enable it again
+            }
+            
+            console.log('Feature Editor layer updated successfully!');
+            this.showStatus('✓ Editor updated with new layer data.', 'success');
         },
         
         /**
