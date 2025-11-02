@@ -996,7 +996,7 @@
                     const srbc = srbcFeatures[i];
                     const srbcGeom = srbc.getGeometry();
                     if (srbcGeom && srbcGeom.intersectsCoordinate(coordinate)) {
-                        properties.SRBC_Focus_Area_Name = srbc.get('FocusArea') || '';
+                        properties.SRBC_Focus_Name = srbc.get('FocusArea') || '';
                         properties.SRBC_Focus_Purpose = srbc.get('Purpose') || '';
                         properties.SRBC_Area_Order = srbc.get('FocusAreaN') || null;
                         break;
@@ -1082,7 +1082,7 @@
                 HUC12_Name: '',
                 Smallshed: '',
                 In_Critical_Recharge: 0,
-                SRBC_Focus_Area_Name: '',
+                SRBC_Focus_Name: '',
                 SRBC_Focus_Purpose: '',
                 SRBC_Area_Order: null,
                 Priority_Subwatershed: '',
