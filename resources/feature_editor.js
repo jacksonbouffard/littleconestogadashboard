@@ -1020,6 +1020,7 @@
             }
             
             // Check Priority Subwatershed (from Delisting Catchments)
+            let foundCatchment = false;
             if (typeof lyr_Delisting_Catchments !== 'undefined') {
                 const catchmentSource = lyr_Delisting_Catchments.getSource();
                 const catchmentFeatures = catchmentSource.getFeatures();
@@ -1029,9 +1030,15 @@
                     const catchmentGeom = catchment.getGeometry();
                     if (catchmentGeom && catchmentGeom.intersectsCoordinate(coordinate)) {
                         properties.Priority_Subwatershed = catchment.get('NAME') || '';
+                        foundCatchment = true;
                         break;
                     }
                 }
+            }
+            
+            // If not in any delisting catchment, set to "Nonpriority Area"
+            if (!foundCatchment) {
+                properties.Priority_Subwatershed = 'Nonpriority Area';
             }
             
             return properties;
