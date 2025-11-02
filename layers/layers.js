@@ -274,7 +274,7 @@ var lyr_critical_recharge_area_footprint = new ol.layer.Vector({
     title: '<img src="styles/legend/Critical_Recharge_Area_Footprint_0.png" width="24" height="24" style="vertical-align: middle;" /> Critical Recharge Area Footprint'
 });
 
-lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(false);lyr_EsriWorldImagery_3.setVisible(true);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);
+lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(true);lyr_EsriWorldImagery_3.setVisible(false);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);
 // BMP and Parcel layer visibility will be set when they are initialized after upload
 
 // Create layer groups
@@ -282,8 +282,8 @@ var basemapGroup = new ol.layer.Group({
     title: 'Base Maps',
     layers: [
         lyr_OpenStreetMap_0,
-        lyr_GoogleSatellite_2,
         lyr_EsriWorldImagery_3,
+        lyr_GoogleSatellite_2,
         lyr_EsriImageryLabels_4
     ]
 });

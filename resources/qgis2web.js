@@ -3596,6 +3596,576 @@ let measuring = false;
     measureControl.appendChild(selectLabel);
 
     selectLabel.style.display = "none";
+	
+	// ==================== LOCATION LOOKUP CONTROL ====================
+	let locationLookupActive = false;
+	let locationMarker = null;
+	
+	const locationButton = document.createElement('button');
+	locationButton.className = 'measure-button fas fa-map-marker-alt';
+	locationButton.title = 'Location Lookup';
+	
+	const locationControl = document.createElement('div');
+	locationControl.className = 'ol-unselectable ol-control location-control';
+	locationControl.appendChild(locationButton);
+	map.getTargetElement().appendChild(locationControl);
+	
+	// Create search input panel
+	const locationPanel = document.createElement('div');
+	locationPanel.id = 'location-lookup-panel';
+	locationPanel.style.cssText = `
+		display: none;
+		position: fixed;
+		background: rgba(255, 255, 255, 0.4);
+		border: 2px solid #0056b3;
+		border-radius: 4px;
+		padding: 2px;
+		z-index: 1000;
+		width: 320px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	`;
+	locationPanel.innerHTML = `
+		<div style="background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 2px;">
+			<div style="background: #5a9fd4; color: white; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; border-radius: 2px; margin-bottom: 8px;">
+				<span style="font-size: 14px; font-weight: 600;">Location Lookup</span>
+				<button id="close-location-panel" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; line-height: 1; font-weight: bold;">&times;</button>
+			</div>
+			<div style="margin-bottom: 10px;">
+				<label style="display: block; margin-bottom: 5px; font-size: 12px; color: #333; font-weight: 500;">Search by Address or Coordinates:</label>
+				<input type="text" id="location-search-input" placeholder="e.g., 123 Main St, Lancaster PA or 40.0379, -76.3055" 
+					style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; box-sizing: border-box;">
+				<div style="font-size: 11px; color: #666; margin-top: 4px;">
+					Format: Address or Lat, Lon (e.g., 40.0379, -76.3055)
+				</div>
+			</div>
+			<button id="location-search-btn" style="width: 100%; padding: 8px; background: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500;">
+				<i class="fas fa-search"></i> Search
+			</button>
+			<div id="location-result" style="margin-top: 8px; font-size: 12px; color: #666;"></div>
+		</div>
+	`;
+	map.getTargetElement().appendChild(locationPanel);
+	
+	// Create a vector layer for the location marker
+	const locationSource = new ol.source.Vector();
+	const locationLayer = new ol.layer.Vector({
+		source: locationSource,
+		style: new ol.style.Style({
+			image: new ol.style.Circle({
+				radius: 30,
+				fill: new ol.style.Fill({
+					color: 'rgba(255, 0, 0, 0.8)'  // Red fill
+				}),
+				stroke: new ol.style.Stroke({
+					color: '#000000',  // Black outline
+					width: 3
+				})
+			}),
+			text: new ol.style.Text({
+				text: 'Locator',
+				font: 'bold 12px sans-serif',
+				fill: new ol.style.Fill({
+					color: '#ffffff'  // White text
+				}),
+				stroke: new ol.style.Stroke({
+					color: '#000000',
+					width: 2
+				})
+			})
+		}),
+		zIndex: 9999  // Ensure it's on top
+	});
+	map.addLayer(locationLayer);
+	
+	// Track the current BMP confirmation popup
+	let currentBMPPopup = null;
+	
+	// Add click handler for location marker
+	map.on('singleclick', function(evt) {
+		console.log('Map clicked at pixel:', evt.pixel);
+		
+		const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+			console.log('Found feature on layer:', layer === locationLayer ? 'locationLayer' : 'other');
+			if (layer === locationLayer) {
+				return feature;
+			}
+		});
+		
+		console.log('Location marker feature found:', feature ? 'yes' : 'no');
+		
+		if (feature) {
+			// Close existing popup if there is one
+			if (currentBMPPopup) {
+				console.log('Closing existing BMP popup');
+				map.removeOverlay(currentBMPPopup);
+				currentBMPPopup = null;
+			}
+			
+			console.log('Creating BMP confirmation popup...');
+			// Create BMP confirmation popup
+			const coordinate = feature.getGeometry().getCoordinates();
+			const popupElement = document.createElement('div');
+			popupElement.className = 'bmp-confirmation-popup';
+			popupElement.style.display = 'block';
+			popupElement.style.position = 'absolute';
+			popupElement.innerHTML = `
+				<div style="background: rgba(255, 255, 255, 0.4); padding: 3px; border-radius: 6px; border: 2px solid #0056b3; box-shadow: 0 2px 8px rgba(0,0,0,0.3); min-width: 200px; z-index: 10000;">
+					<div style="background: white; padding: 12px; border-radius: 4px;">
+						<strong style="color: #000;">Create BMP Point here?</strong><br>
+						<div style="margin-top: 10px; display: flex; gap: 8px; justify-content: center;">
+							<button id="bmp-confirm-yes" style="padding: 6px 16px; background: #5a9fd4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: 600;">
+								Yes
+							</button>
+							<button id="bmp-confirm-no" style="padding: 6px 16px; background: #d9534f; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: 600;">
+								No
+							</button>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			const confirmPopup = new ol.Overlay({
+				element: popupElement,
+				positioning: 'bottom-center',
+				offset: [0, -15],
+				stopEvent: true,
+				autoPan: true,
+				autoPanAnimation: {
+					duration: 250
+				}
+			});
+			
+			console.log('Adding overlay to map...');
+			map.addOverlay(confirmPopup);
+			confirmPopup.setPosition(coordinate);
+			currentBMPPopup = confirmPopup;  // Store reference to current popup
+			console.log('Popup positioned at:', coordinate);
+			console.log('Popup element:', popupElement);
+			
+			// Handle Yes button
+			document.getElementById('bmp-confirm-yes').addEventListener('click', function() {
+				console.log('Yes button clicked');
+				// Close the confirmation popup
+				map.removeOverlay(confirmPopup);
+				currentBMPPopup = null;
+				
+				// Close location panel
+				locationLookupActive = false;
+				locationPanel.style.display = 'none';
+				document.getElementById('location-result').textContent = '';
+				
+				// Clear location marker
+				locationSource.clear();
+				
+				// Open Feature Editor and create feature at this location
+				if (typeof FeatureEditor !== 'undefined') {
+					// Show the editor panel if not already visible
+					const panel = document.getElementById('feature-editor-panel');
+					if (!panel || panel.style.display !== 'block') {
+						FeatureEditor.show();
+					}
+					
+					// Enable edit mode if not already enabled
+					if (!FeatureEditor.enabled) {
+						FeatureEditor.toggleEditMode();
+					}
+					
+					// Wait for edit mode to be enabled, then create feature directly
+					setTimeout(function() {
+						// Create a new feature at the coordinate
+						const newFeature = new ol.Feature({
+							geometry: new ol.geom.Point(coordinate)
+						});
+						
+						// Get default properties
+						const defaultProps = FeatureEditor.getDefaultProperties();
+						
+						// Perform spatial auto-fill
+						const spatialProps = FeatureEditor.spatialAutoFill(newFeature);
+						
+						// Merge default properties with spatially-derived properties
+						const finalProps = Object.assign({}, defaultProps, spatialProps);
+						newFeature.setProperties(finalProps);
+						
+						// Mark as unsaved
+						newFeature.set('__unsaved', true);
+						
+						// Add feature to the layer
+						const source = FeatureEditor.editingLayer.getSource();
+						source.addFeature(newFeature);
+						
+						// Store as temporary unsaved feature and show form
+						FeatureEditor.tempFeature = newFeature;
+						FeatureEditor.isNewFeature = true;
+						FeatureEditor.selectedFeature = newFeature;
+						
+						// Select the feature
+						FeatureEditor.selectInteraction.getFeatures().clear();
+						FeatureEditor.selectInteraction.getFeatures().push(newFeature);
+						
+						// Show form for the new feature
+						FeatureEditor.showFeatureForm(newFeature);
+						
+						// Enable delete button
+						const deleteBtn = document.getElementById('delete-feature-btn');
+						if (deleteBtn) {
+							deleteBtn.disabled = false;
+						}
+						
+						FeatureEditor.showStatus('New BMP point created at searched location. Fill in the details and click Save.', 'success');
+					}, 300);
+				} else {
+					alert('Feature Editor is not available. Please refresh the page.');
+				}
+			});
+			
+			// Handle No button
+			document.getElementById('bmp-confirm-no').addEventListener('click', function() {
+				map.removeOverlay(confirmPopup);
+				currentBMPPopup = null;
+			});
+		}
+	});
+	
+	// Add class to panel for sidebar shift tracking
+	locationPanel.classList.add('location-panel');
+	
+	// Toggle location lookup panel
+	function toggleLocationLookup() {
+		locationLookupActive = !locationLookupActive;
+		locationPanel.style.display = locationLookupActive ? 'block' : 'none';
+		
+		if (locationLookupActive) {
+			// Position panel to the right of the button
+			const buttonRect = locationControl.getBoundingClientRect();
+			
+			// Calculate panel height (more accurate estimate)
+			const panelHeight = 240; // Approximate height with 2 results
+			const viewportHeight = window.innerHeight;
+			
+			// Try to position aligned with bottom of button, extending upward
+			let topPosition = buttonRect.bottom - panelHeight;
+			
+			// Make sure panel doesn't go off top of screen
+			if (topPosition < 10) {
+				topPosition = 10;
+			}
+			
+			// Make sure panel doesn't go off bottom of screen
+			if (topPosition + panelHeight > viewportHeight - 10) {
+				topPosition = viewportHeight - panelHeight - 10;
+			}
+			
+			// Final check - if panel is still too tall, position at top
+			if (topPosition < 10) {
+				topPosition = 10;
+			}
+			
+			locationPanel.style.top = topPosition + 'px';
+			locationPanel.style.left = (buttonRect.right + 8) + 'px'; // 8px gap from button
+			
+			// Check if sidebar is open and adjust
+			const sidebar = document.querySelector('.sidebar');
+			if (sidebar && !sidebar.classList.contains('collapsed')) {
+				// Sidebar is open, shift the panel
+				const currentLeft = parseInt(locationPanel.style.left);
+				locationPanel.style.left = (currentLeft + 272) + 'px'; // Sidebar width
+			}
+			
+			document.getElementById('location-search-input').focus();
+		} else {
+			document.getElementById('location-result').textContent = '';
+			// Clear location marker and any popups when panel is closed
+			locationSource.clear();
+			map.getOverlays().getArray().slice().forEach(function(overlay) {
+				if (overlay.getElement() && overlay.getElement().classList.contains('location-popup')) {
+					map.removeOverlay(overlay);
+				}
+			});
+			// Close BMP confirmation popup if open
+			if (currentBMPPopup) {
+				map.removeOverlay(currentBMPPopup);
+				currentBMPPopup = null;
+			}
+		}
+	}
+	
+	locationButton.addEventListener('click', toggleLocationLookup);
+	locationButton.addEventListener('touchstart', toggleLocationLookup);
+	
+	document.getElementById('close-location-panel').addEventListener('click', function() {
+		locationLookupActive = false;
+		locationPanel.style.display = 'none';
+		document.getElementById('location-result').textContent = '';
+		// Clear location marker and any popups when panel is closed
+		locationSource.clear();
+		map.getOverlays().getArray().slice().forEach(function(overlay) {
+			if (overlay.getElement() && overlay.getElement().classList.contains('location-popup')) {
+				map.removeOverlay(overlay);
+			}
+		});
+		// Close BMP confirmation popup if open
+		if (currentBMPPopup) {
+			map.removeOverlay(currentBMPPopup);
+			currentBMPPopup = null;
+		}
+	});
+	
+	// Handle location search
+	function searchLocation() {
+		const input = document.getElementById('location-search-input').value.trim();
+		const resultDiv = document.getElementById('location-result');
+		
+		if (!input) {
+			resultDiv.innerHTML = '<span style="color: #d9534f;">Please enter an address or coordinates.</span>';
+			return;
+		}
+		
+		resultDiv.textContent = 'Searching...';
+		
+		// Check if input is coordinates (lat, lon format)
+		const coordPattern = /^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/;
+		const coordMatch = input.match(coordPattern);
+		
+		if (coordMatch) {
+			// Input is coordinates
+			const lat = parseFloat(coordMatch[1]);
+			const lon = parseFloat(coordMatch[2]);
+			
+			// Validate coordinates
+			if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+				resultDiv.innerHTML = '<span style="color: #d9534f;">Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.</span>';
+				return;
+			}
+			
+			// Convert to map projection (EPSG:3857)
+			const coords = ol.proj.fromLonLat([lon, lat]);
+			
+			// Add marker and zoom to location
+			placeLocationMarker(coords, `${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+			resultDiv.innerHTML = `<span style="color: #5cb85c;">✓ Found: ${lat.toFixed(6)}, ${lon.toFixed(6)}</span>`;
+		} else {
+			// Get current map extent to prioritize nearby results
+			const extent = map.getView().calculateExtent(map.getSize());
+			const bottomLeft = ol.proj.toLonLat([extent[0], extent[1]]);
+			const topRight = ol.proj.toLonLat([extent[2], extent[3]]);
+			const viewbox = `${bottomLeft[0]},${topRight[1]},${topRight[0]},${bottomLeft[1]}`;
+			
+			// Input is an address - use Nominatim geocoding (restricted to United States, prioritizing Pennsylvania and current map view)
+			const encodedAddress = encodeURIComponent(input + ', Pennsylvania');
+			const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&countrycodes=us&viewbox=${viewbox}&bounded=1&limit=2`;
+			
+			fetch(nominatimUrl)
+				.then(response => response.json())
+				.then(data => {
+					if (data && data.length > 0) {
+						// Show multiple results
+						let resultsHTML = '<div style="margin-top: 8px;"><strong style="font-size: 12px; color: #333;">Select a location:</strong></div>';
+						resultsHTML += '<div style="max-height: 200px; overflow-y: auto; margin-top: 6px;">';
+						
+						data.forEach((result, index) => {
+							const displayName = result.display_name;
+							// Truncate very long addresses
+							const shortName = displayName.length > 80 ? displayName.substring(0, 80) + '...' : displayName;
+							
+							resultsHTML += `
+								<div class="location-result-item" data-index="${index}" 
+									style="padding: 8px; margin-bottom: 4px; background: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 12px; line-height: 1.4; transition: all 0.2s ease;"
+									onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.borderColor='#5a9fd4';"
+									onmouseout="this.style.backgroundColor='white'; this.style.borderColor='#ddd';">
+									<div style="color: #333; font-weight: 500; margin-bottom: 2px;">${result.type || 'Location'}</div>
+									<div style="color: #666;">${shortName}</div>
+								</div>
+							`;
+						});
+						
+						resultsHTML += '</div>';
+						resultDiv.innerHTML = resultsHTML;
+						
+						// Add click handlers to result items
+						const resultItems = resultDiv.querySelectorAll('.location-result-item');
+						resultItems.forEach((item, index) => {
+							item.addEventListener('click', function() {
+								const result = data[index];
+								const lon = parseFloat(result.lon);
+								const lat = parseFloat(result.lat);
+								const coords = ol.proj.fromLonLat([lon, lat]);
+								
+								placeLocationMarker(coords, result.display_name);
+								resultDiv.innerHTML = `<span style="color: #5cb85c;">✓ Found: ${result.display_name}</span>`;
+							});
+						});
+					} else {
+						resultDiv.innerHTML = '<span style="color: #d9534f;">Location not found. Try a different address or use coordinates.</span>';
+					}
+				})
+				.catch(error => {
+					console.error('Geocoding error:', error);
+					resultDiv.innerHTML = '<span style="color: #d9534f;">Error searching location. Please try again.</span>';
+				});
+		}
+	}
+	
+	function placeLocationMarker(coords, label) {
+		// Clear previous marker
+		locationSource.clear();
+		
+		// Close any existing BMP confirmation popup
+		if (currentBMPPopup) {
+			map.removeOverlay(currentBMPPopup);
+			currentBMPPopup = null;
+		}
+		
+		// Create new marker
+		const marker = new ol.Feature({
+			geometry: new ol.geom.Point(coords),
+			name: label
+		});
+		locationSource.addFeature(marker);
+		
+		// Zoom to location
+		map.getView().animate({
+			center: coords,
+			zoom: 16,
+			duration: 1000
+		});
+		
+		// Create a popup for the marker
+		const popupElement = document.createElement('div');
+		popupElement.className = 'ol-popup location-popup';
+		popupElement.innerHTML = `
+			<div style="background: white; padding: 10px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); max-width: 250px;">
+				<strong>Location:</strong><br>
+				${label}<br>
+				<button onclick="this.parentElement.parentElement.remove()" style="margin-top: 5px; padding: 4px 8px; background: #d9534f; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+					Clear Marker
+				</button>
+			</div>
+		`;
+		
+		const popup = new ol.Overlay({
+			element: popupElement,
+			positioning: 'bottom-center',
+			offset: [0, -45],
+			stopEvent: false
+		});
+		map.addOverlay(popup);
+		popup.setPosition(coords);
+		
+		// Remove popup when marker is cleared
+		popupElement.querySelector('button').addEventListener('click', function() {
+			locationSource.clear();
+			map.removeOverlay(popup);
+		});
+	}
+	
+	// Debounce function for live search
+	let searchTimeout;
+	function debounce(func, delay) {
+		return function(...args) {
+			clearTimeout(searchTimeout);
+			searchTimeout = setTimeout(() => func.apply(this, args), delay);
+		};
+	}
+	
+	// Live autocomplete search
+	function liveSearchLocation() {
+		const input = document.getElementById('location-search-input').value.trim();
+		const resultDiv = document.getElementById('location-result');
+		
+		// Clear results if input is too short
+		if (input.length < 3) {
+			resultDiv.innerHTML = '';
+			return;
+		}
+		
+		// Don't search for coordinates pattern
+		const coordPattern = /^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/;
+		if (coordPattern.test(input)) {
+			resultDiv.innerHTML = '<div style="padding: 8px; font-size: 12px; color: #666;">Press Enter or click Search to use coordinates</div>';
+			return;
+		}
+		
+		// Show loading indicator
+		resultDiv.innerHTML = '<div style="padding: 8px; font-size: 12px; color: #666;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+		
+		// Get current map extent to prioritize nearby results
+		const extent = map.getView().calculateExtent(map.getSize());
+		const bottomLeft = ol.proj.toLonLat([extent[0], extent[1]]);
+		const topRight = ol.proj.toLonLat([extent[2], extent[3]]);
+		const viewbox = `${bottomLeft[0]},${topRight[1]},${topRight[0]},${bottomLeft[1]}`;
+		
+		// Search with Nominatim (restricted to United States, prioritizing Pennsylvania and current map view)
+		const encodedAddress = encodeURIComponent(input + ', Pennsylvania');
+		const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&countrycodes=us&viewbox=${viewbox}&bounded=1&limit=2`;
+		
+		fetch(nominatimUrl)
+			.then(response => response.json())
+			.then(data => {
+				if (data && data.length > 0) {
+					let resultsHTML = '<div style="margin-top: 4px;">';
+					
+					data.forEach((result, index) => {
+						const displayName = result.display_name;
+						const shortName = displayName.length > 70 ? displayName.substring(0, 70) + '...' : displayName;
+						
+						resultsHTML += `
+							<div class="location-result-item" data-index="${index}" 
+								style="padding: 6px 8px; margin-bottom: 3px; background: white; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 11px; line-height: 1.4; transition: all 0.15s ease;"
+								onmouseover="this.style.backgroundColor='#f0f7ff'; this.style.borderColor='#5a9fd4';"
+								onmouseout="this.style.backgroundColor='white'; this.style.borderColor='#ddd';">
+								<div style="color: #666; font-size: 10px; text-transform: uppercase; margin-bottom: 2px;">${result.type || 'Location'}</div>
+								<div style="color: #333; font-weight: 500;">${shortName}</div>
+							</div>
+						`;
+					});
+					
+					resultsHTML += '</div>';
+					resultDiv.innerHTML = resultsHTML;
+					
+					// Add click handlers to result items
+					const resultItems = resultDiv.querySelectorAll('.location-result-item');
+					resultItems.forEach((item, index) => {
+						item.addEventListener('click', function() {
+							const result = data[index];
+							const lon = parseFloat(result.lon);
+							const lat = parseFloat(result.lat);
+							const coords = ol.proj.fromLonLat([lon, lat]);
+							
+							// Update input field
+							document.getElementById('location-search-input').value = result.display_name;
+							
+							placeLocationMarker(coords, result.display_name);
+							resultDiv.innerHTML = `<div style="padding: 6px; font-size: 11px; color: #5cb85c;"><i class="fas fa-check-circle"></i> Location selected</div>`;
+						});
+					});
+				} else {
+					resultDiv.innerHTML = '<div style="padding: 6px; font-size: 11px; color: #999;">No results found</div>';
+				}
+			})
+			.catch(error => {
+				console.error('Geocoding error:', error);
+				resultDiv.innerHTML = '<div style="padding: 6px; font-size: 11px; color: #d9534f;">Error searching</div>';
+			});
+	}
+	
+	const debouncedLiveSearch = debounce(liveSearchLocation, 500);
+	
+	// Add input event listener for live search
+	document.getElementById('location-search-input').addEventListener('input', debouncedLiveSearch);
+	
+	// Search button click
+	document.getElementById('location-search-btn').addEventListener('click', searchLocation);
+	
+	// Enter key in search input
+	document.getElementById('location-search-input').addEventListener('keypress', function(e) {
+		if (e.key === 'Enter') {
+			searchLocation();
+		}
+	});
+	
+	// ==================== END LOCATION LOOKUP CONTROL ====================
+	
 	/**
 	 * Currently drawn feature.
 	 * @type {ol.Feature}
@@ -3954,10 +4524,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof geolocateControl !== 'undefined') {
         topLeftContainerDiv.appendChild(geolocateControl);
     }
-    //measure
-    if (typeof measureControl !== 'undefined') {
-        topLeftContainerDiv.appendChild(measureControl);
-    }
     //geocoder
     var searchbar = document.getElementsByClassName('photon-geocoder-autocomplete ol-unselectable ol-control')[0];
     if (searchbar) {
@@ -3968,6 +4534,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchLayerControl) {
         topLeftContainerDiv.appendChild(searchLayerControl);
     }
+    
+    //Move location and measure to bottom-left, BEFORE the splash button
+    var splashButtonControl = document.querySelector('.splash-button-control');
+    //location lookup (first)
+    if (typeof locationControl !== 'undefined' && splashButtonControl) {
+        bottomLeftContainerDiv.insertBefore(locationControl, splashButtonControl);
+    }
+    //measure (second, after location)
+    if (typeof measureControl !== 'undefined' && splashButtonControl) {
+        bottomLeftContainerDiv.insertBefore(measureControl, splashButtonControl);
+    }
+    //splash button (info) is already in bottom-left and will be third
+    
     //scale line
     var scaleLineControl = document.getElementsByClassName('ol-scale-line')[0];
     if (scaleLineControl) {

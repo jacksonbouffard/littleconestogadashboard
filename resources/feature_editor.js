@@ -789,6 +789,23 @@
          * Close the editor
          */
         closeEditor: function() {
+            // Discard any unsaved features before closing
+            if (this.isNewFeature && this.tempFeature) {
+                console.log('Closing editor with unsaved feature - removing it');
+                const source = this.editingLayer.getSource();
+                if (source.hasFeature(this.tempFeature)) {
+                    source.removeFeature(this.tempFeature);
+                }
+                this.tempFeature = null;
+                this.isNewFeature = false;
+            }
+            
+            // Clear selection
+            if (this.selectInteraction) {
+                this.selectInteraction.getFeatures().clear();
+            }
+            this.selectedFeature = null;
+            
             if (this.enabled) {
                 this.toggleEditMode();
             }
