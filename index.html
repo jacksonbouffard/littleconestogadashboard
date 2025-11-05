@@ -86,8 +86,11 @@
         
         .splash-content {
             max-width: 800px;
+            width: 90%;
             max-height: 85vh;
+            height: auto;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 40px;
             text-align: center;
             background: white;
@@ -148,16 +151,19 @@
         }
         
         .file-upload-section {
-            margin: 30px 0;
+            margin: 30px 0 20px 0;
             padding: 20px;
             background-color: #f8f9fa;
             border-radius: 6px;
             border: 2px dashed #5a9fd4;
+            position: relative;
+            clear: both;
         }
         
         .file-upload-section h3 {
             color: #2c3e50;
             margin-bottom: 15px;
+            margin-top: 0;
             font-size: 18px;
         }
         
@@ -201,6 +207,62 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
             display: block;
+        }
+        
+        /* Disclaimer Section */
+        .disclaimer-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff3cd;
+            border-radius: 6px;
+            border: 2px solid #ffc107;
+            text-align: left;
+            position: relative;
+            clear: both;
+        }
+        
+        .disclaimer-section h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .disclaimer-text {
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .disclaimer-checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        .disclaimer-checkbox-container input[type="checkbox"] {
+            margin-top: 3px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .disclaimer-checkbox-container label {
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
         }
         
         /* Lightbox Styles */
@@ -298,6 +360,18 @@
                     <div id="file-status" class="file-status"></div>
                 </div>
                 
+                <!-- Disclaimer Section -->
+                <div class="disclaimer-section">
+                    <h3>Data Disclaimer & Terms of Use</h3>
+                    <div class="disclaimer-text">
+                        The Little Conestoga Watershed Dashboard is provided by the Penn State Agricultural and Environment Center for Authorized Partners in the watershed. Uncertainty and potential for error can be associated with environmental data. Data users are cautioned to carefully consider the provisional nature of the information before using it for decisions that concern personal or public safety or the conduct of business that involves substantial monetary or operational consequences. The Originator, Publisher, and Distributor exclude any and all express or implied warranties and make no warranty or representation with respect to the data files or accompanying documentation, including accuracy, reliability, utility, or completeness. The Penn State Agriculture and Environment Center shall not be held liable for improper or incorrect use of the data described or information contained on these pages. These data files and documentation are provided "as is" and the User assumes the entire risk as to their quality and performance. These data are not to be redistributed for commercial profit. Reproduction or redistribution of this digital dataset without permission of the Originator/Publisher is expressly forbidden. The Originator and Publisher should be clearly cited in any product derived from this data. Any modifications to this data must be described in any digital or hardcopy product derived from this data. In no event shall Penn State Agriculture and Environment Center have any liability whatsoever for payment of any consequential, incidental, indirect, special, or tort damages of any kind, including, but not limited to, any loss of profits arising out of use of or reliance on the geographic data.
+                    </div>
+                    <div class="disclaimer-checkbox-container">
+                        <input type="checkbox" id="disclaimer-checkbox">
+                        <label for="disclaimer-checkbox">I have read and agree to the terms and conditions stated above.</label>
+                    </div>
+                </div>
+                
                 <p>
                     Use the filters on the left to explore different categories of projects and priority areas.
                 </p>
@@ -349,6 +423,19 @@
                 parcel: false
             };
             
+            // Function to check if Enter Dashboard button should be enabled
+            function updateEnterButtonState() {
+                const enterBtn = document.getElementById('enter-dashboard-btn');
+                const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
+                
+                // Button is enabled only if both files are loaded AND disclaimer is checked
+                const shouldEnable = filesLoaded.bmp && filesLoaded.parcel && disclaimerCheckbox.checked;
+                
+                if (enterBtn) {
+                    enterBtn.disabled = !shouldEnable;
+                }
+            }
+            
             // Check if files were previously loaded from sessionStorage
             function checkStoredFiles() {
                 const storedBMP = sessionStorage.getItem('bmp_data');
@@ -391,12 +478,9 @@
             window.addEventListener('DOMContentLoaded', function() {
                 const hasStoredFiles = checkStoredFiles();
                 
-                // If files are stored, enable the button and hide file upload section
+                // If files are stored, update button state (still requires disclaimer)
                 if (hasStoredFiles) {
-                    const enterBtn = document.getElementById('enter-dashboard-btn');
-                    if (enterBtn) {
-                        enterBtn.disabled = false;
-                    }
+                    updateEnterButtonState();
                     const fileUploadSection = document.querySelector('.file-upload-section');
                     if (fileUploadSection) {
                         fileUploadSection.style.display = 'none';
@@ -407,6 +491,12 @@
                         statusDiv.textContent = '✓ Layer data loaded from previous session.';
                         statusDiv.style.display = 'block';
                     }
+                }
+                
+                // Add event listener to disclaimer checkbox
+                const disclaimerCheckbox = document.getElementById('disclaimer-checkbox');
+                if (disclaimerCheckbox) {
+                    disclaimerCheckbox.addEventListener('change', updateEnterButtonState);
                 }
             });
             
@@ -469,8 +559,8 @@
                                     initializeUserLayers();
                                     
                                     statusDiv.className = 'file-status success';
-                                    statusDiv.textContent = '✓ Both files loaded successfully! You can now enter the dashboard.';
-                                    document.getElementById('enter-dashboard-btn').disabled = false;
+                                    statusDiv.textContent = '✓ Both files loaded successfully! Please accept the disclaimer to continue.';
+                                    updateEnterButtonState();
                                 } else {
                                     statusDiv.className = 'file-status success';
                                     const loadedType = type === 'bmp' ? 'BMP Survey Points' : 'Parcel Level Projects';

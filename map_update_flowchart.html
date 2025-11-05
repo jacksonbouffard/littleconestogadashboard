@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Mapping Tool - Update System Flowchart</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            page-break-after: avoid;
+        }
+        
+        h2 {
+            color: #34495e;
+            background: #ecf0f1;
+            padding: 10px;
+            border-left: 4px solid #3498db;
+            page-break-after: avoid;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #2c3e50;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+            page-break-after: avoid;
+        }
+        
+        .flowchart-box {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            page-break-inside: avoid;
+        }
+        
+        .process-flow {
+            background: linear-gradient(to right, #e8f4f8, #f0f8ff);
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        
+        .note-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        
+        .note-box::before {
+            content: "📌 Note: ";
+            font-weight: bold;
+            color: #856404;
+        }
+        
+        .component-list {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        .status-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .status-table th {
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #2980b9;
+        }
+        
+        .status-table td {
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            background: white;
+        }
+        
+        .status-table tr:nth-child(even) td {
+            background: #f8f9fa;
+        }
+        
+        .phase-header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 25px 0 15px 0;
+            page-break-after: avoid;
+        }
+        
+        ul {
+            margin-left: 20px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        .implementation-step {
+            background: #f0f8ff;
+            border: 2px solid #4a90e2;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .implementation-step h4 {
+            color: #2e5cb8;
+            margin-top: 0;
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+            }
+            
+            .flowchart-box {
+                font-size: 10pt;
+            }
+            
+            h1 {
+                page-break-after: avoid;
+            }
+            
+            .phase-header {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Web Mapping Tool Update System</h1>
+    <p><strong>Architecture:</strong> Client-Side Tool → Google Form → Google Sheet + Apps Script → Google Drive</p>
+    <p><strong>Purpose:</strong> Implement an authoritative update system where map edits are reviewed and approved before becoming official.</p>
+
+    <h2>System Overview</h2>
+    <div class="flowchart-box">┌─────────────────────────────────────────────────────────────┐
+│                     SYSTEM ARCHITECTURE                      │
+├─────────────────────────────────────────────────────────────┤
+│  Web Map Tool → Google Form → Sheet + Scripts → Drive Files │
+│  (GitHub Pages)   (Collector)    (Processor)     (Storage)  │
+└─────────────────────────────────────────────────────────────┘</div>
+
+    <div class="note-box">
+        This system requires no backend infrastructure while maintaining authoritative control over data updates. All processing happens through Google's free services.
+    </div>
+
+    <div class="phase-header">PHASE 1: User Submission Flow</div>
+    
+    <h3>User Interaction Process</h3>
+    <div class="flowchart-box">USER OPENS WEB MAPPING TOOL
+            │
+            ├→ Uploads file from Google Drive (manual download/upload)
+            │   └→ System stores original state + version number
+            │
+            ├→ Makes edits to map features
+            │   └→ Each edit tracked as delta in background array
+            │
+            └→ Clicks "Submit Changes for Review"
+                    │
+                    ├→ Downloads pending file locally
+                    │   (Complete backup with changes)
+                    │
+                    └→ Opens pre-filled Google Form
+                        │
+                        ├→ Session ID (auto-filled, hidden)
+                        ├→ Base Version (auto-filled, hidden)
+                        ├→ Change Data JSON (auto-filled, hidden)
+                        └→ Notes (user can add comments)
+                                │
+                                └→ User clicks Submit</div>
+
+    <div class="process-flow">
+        <strong>Key Implementation Details:</strong>
+        <ul>
+            <li>Delta tracking captures only changes, not entire file</li>
+            <li>Session ID generated from timestamp + random string</li>
+            <li>Google Form opened with pre-filled data via URL parameters</li>
+            <li>User retains local backup of their complete changes</li>
+        </ul>
+    </div>
+
+    <div class="phase-header">PHASE 2: Data Reception & Storage</div>
+    
+    <h3>Automated Data Collection</h3>
+    <div class="flowchart-box">GOOGLE FORM SUBMISSION
+            │
+            └→ Auto-populates Google Sheet row:
+                    │
+                    ├→ Column A: Timestamp (automatic)
+                    ├→ Column B: Session ID
+                    ├→ Column C: Base Version
+                    ├→ Column D: Changes (JSON string)
+                    ├→ Column E: User Notes
+                    ├→ Column F: Status (empty, awaiting)
+                    ├→ Column G: Approval Time (empty)
+                    └→ Column H: Conflict Flag (formula)
+                            │
+                            └→ Trigger: onFormSubmit()
+                                    │
+                                    ├→ Sets Status = "PENDING"
+                                    ├→ Checks version conflicts
+                                    └→ [Optional] Email notification</div>
+
+    <div class="phase-header">PHASE 3: Review Interface</div>
+    
+    <h3>Administrative Control Panel</h3>
+    <div class="flowchart-box">GOOGLE SHEET with CUSTOM MENU
+            │
+            └→ "Map Updates" Menu (via Apps Script)
+                    │
+                    ├→ "Review Selected Row"
+                    │   └→ Shows changes in sidebar
+                    │       ├→ Session info
+                    │       ├→ Change count
+                    │       └→ Detailed delta view
+                    │
+                    ├→ "Check for Conflicts"
+                    │   └→ Compares against current version
+                    │       ├→ No conflict → Green flag
+                    │       └→ Conflict → Shows differences
+                    │
+                    └→ "Approve Selected Row"
+                            └→ [Continue to Phase 4]</div>
+
+    <div class="phase-header">PHASE 4: Automated Merge Process</div>
+    
+    <h3>Approval & File Management</h3>
+    <div class="flowchart-box">APPROVE BUTTON CLICKED
+            │
+            ├→ Validates submission
+            │   ├→ Check: Valid JSON?
+            │   ├→ Check: Version exists?
+            │   └→ Check: User already processed?
+            │
+            ├→ Retrieves current file from Drive
+            │   └→ Folder: /Shared Map Data/
+            │       └→ File: map_data_current.js
+            │
+            ├→ Applies deltas sequentially
+            │   ├→ For each change in submission:
+            │   │   ├→ Type: "modify" → Update feature
+            │   │   ├→ Type: "add" → Insert feature
+            │   │   └→ Type: "delete" → Remove feature
+            │   └→ Error handling:
+            │       ├→ Missing feature → Log & skip
+            │       └→ Duplicate ID → Generate new ID
+            │
+            ├→ Archives current version
+            │   └→ Copies to: /archive/map_data_v[X.X].js
+            │
+            ├→ Saves new version
+            │   ├→ Increments version number
+            │   ├→ Updates: map_data_current.js
+            │   └→ Adds metadata (version, timestamp)
+            │
+            └→ Updates tracking files
+                ├→ version_manifest.json
+                │   ├→ current_version: "1.2.3"
+                │   ├→ last_updated: ISO timestamp
+                │   ├→ changes_applied: count
+                │   └→ pending_reviews: count
+                │
+                └→ Sheet row updates:
+                    ├→ Status → "APPROVED"
+                    ├→ Approval Time → Now
+                    └→ New Version → "1.2.3"</div>
+
+    <div class="phase-header">PHASE 5: Conflict Resolution</div>
+    
+    <h3>Handling Concurrent Edits</h3>
+    <div class="flowchart-box">MULTIPLE PENDING SUBMISSIONS
+            │
+            ├→ First submission (User A, Base v1.0)
+            │   └→ No conflict → Approve → Creates v1.1
+            │
+            └→ Second submission (User B, Base v1.0)
+                    └→ VERSION CONFLICT DETECTED
+                            │
+                            ├→ Option 1: Auto-Rebase
+                            │   ├→ Check if changes overlap
+                            │   ├→ No overlap → Apply to v1.1
+                            │   └→ Creates v1.2
+                            │
+                            ├→ Option 2: Manual Review
+                            │   ├→ Show both changesets
+                            │   ├→ Admin selects changes
+                            │   └→ Custom merge → v1.2
+                            │
+                            └→ Option 3: Reject
+                                ├→ Mark as "NEEDS RESUBMISSION"
+                                └→ User must update to v1.1 first</div>
+
+    <div class="note-box">
+        Since users typically edit different features, most conflicts can be automatically resolved by applying non-overlapping changes sequentially.
+    </div>
+
+    <div class="phase-header">PHASE 6: Distribution & Updates</div>
+    
+    <h3>Version Distribution System</h3>
+    <div class="flowchart-box">NEW VERSION PUBLISHED
+            │
+            ├→ Google Drive Structure:
+            │   /Shared Map Data/
+            │       ├→ map_data_current.js (v1.2)
+            │       ├→ version_manifest.json
+            │       └→ /archive/
+            │           ├→ map_data_v1.0.js
+            │           └→ map_data_v1.1.js
+            │
+            └→ Next User Session:
+                    │
+                    ├→ User opens web tool
+                    ├→ Tool fetches version_manifest.json
+                    ├→ Compares versions
+                    └→ If outdated:
+                        ├→ Shows warning banner
+                        ├→ "Download Latest Version"
+                        └→ Links to Drive folder</div>
+
+    <h2>Google Apps Script Components</h2>
+    
+    <div class="component-list">
+        <h4>Required Script Functions:</h4>
+        <ul>
+            <li><strong>Menu & UI Functions:</strong>
+                <ul>
+                    <li><code>onOpen()</code> - Creates custom menu in Sheet</li>
+                    <li><code>reviewChanges()</code> - Displays changes in sidebar</li>
+                    <li><code>showConflicts()</code> - Analyzes version conflicts</li>
+                </ul>
+            </li>
+            <li><strong>Processing Functions:</strong>
+                <ul>
+                    <li><code>approveChanges()</code> - Main approval handler</li>
+                    <li><code>mergeDeltasToMaster()</code> - Applies all changes</li>
+                    <li><code>applyDelta()</code> - Processes individual change</li>
+                    <li><code>validateSubmission()</code> - Pre-approval checks</li>
+                </ul>
+            </li>
+            <li><strong>File Operations:</strong>
+                <ul>
+                    <li><code>getCurrentFile()</code> - Reads from Drive</li>
+                    <li><code>saveNewVersion()</code> - Writes updated file</li>
+                    <li><code>archiveVersion()</code> - Backs up old versions</li>
+                    <li><code>updateManifest()</code> - Updates version metadata</li>
+                </ul>
+            </li>
+            <li><strong>Automated Triggers:</strong>
+                <ul>
+                    <li><code>onFormSubmit()</code> - Processes new submissions</li>
+                    <li><code>dailyCleanup()</code> - Archives old pending items</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <h2>Dashboard Layout</h2>
+    
+    <table class="status-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Session ID</th>
+                <th>Base Version</th>
+                <th>Changes</th>
+                <th>User Notes</th>
+                <th>Status</th>
+                <th>Approved</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1/15 9:15 AM</td>
+                <td>abc123</td>
+                <td>1.0</td>
+                <td>{JSON data}</td>
+                <td>Fixed building heights</td>
+                <td style="background: #d4edda;">APPROVED</td>
+                <td>9:20 AM</td>
+            </tr>
+            <tr>
+                <td>1/15 9:45 AM</td>
+                <td>def456</td>
+                <td>1.0</td>
+                <td>{JSON data}</td>
+                <td>Added new features</td>
+                <td style="background: #f8d7da;">CONFLICT</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>1/15 10:30 AM</td>
+                <td>ghi789</td>
+                <td>1.1</td>
+                <td>{JSON data}</td>
+                <td>Updated attributes</td>
+                <td style="background: #fff3cd;">PENDING</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="component-list">
+        <h4>Status Code Definitions:</h4>
+        <ul>
+            <li><strong>PENDING</strong> - Awaiting review</li>
+            <li><strong>APPROVED</strong> - Successfully merged</li>
+            <li><strong>CONFLICT</strong> - Version mismatch detected</li>
+            <li><strong>ERROR</strong> - Processing failed</li>
+            <li><strong>REJECTED</strong> - Manually declined</li>
+            <li><strong>RESUBMIT</strong> - Needs update to latest version</li>
+        </ul>
+    </div>
+
+    <h2>Implementation Steps</h2>
+    
+    <div class="implementation-step">
+        <h4>Step 1: Create Google Form</h4>
+        <ol>
+            <li>Create new Google Form with required fields</li>
+            <li>Get pre-fill URL and extract entry IDs</li>
+            <li>Link form to new Google Sheet</li>
+        </ol>
+    </div>
+    
+    <div class="implementation-step">
+        <h4>Step 2: Set Up Google Apps Script</h4>
+        <ol>
+            <li>Open Sheet → Extensions → Apps Script</li>
+            <li>Copy provided script functions</li>
+            <li>Update configuration with Drive folder ID</li>
+            <li>Run initial authorization</li>
+        </ol>
+    </div>
+    
+    <div class="implementation-step">
+        <h4>Step 3: Configure Web Tool</h4>
+        <ol>
+            <li>Add delta tracking to existing edit functions</li>
+            <li>Implement form submission with pre-filled URLs</li>
+            <li>Add version checking on load</li>
+            <li>Create user feedback for submission status</li>
+        </ol>
+    </div>
+    
+    <div class="implementation-step">
+        <h4>Step 4: Test & Deploy</h4>
+        <ol>
+            <li>Test with sample edits</li>
+            <li>Verify approval process</li>
+            <li>Check version increment and archiving</li>
+            <li>Train users on new workflow</li>
+        </ol>
+    </div>
+
+    <h2>Error Handling</h2>
+    
+    <div class="flowchart-box">ERROR SCENARIOS
+            │
+            ├→ Malformed JSON in submission
+            │   ├→ Status → "ERROR"
+            │   ├→ Log error details
+            │   └→ [Optional] Email admin
+            │
+            ├→ Drive permission issues
+            │   ├→ Retry with exponential backoff
+            │   └→ Alert admin after 3 failures
+            │
+            ├→ Version file missing
+            │   ├→ Create new from latest archive
+            │   └→ Reset version numbering
+            │
+            └→ Concurrent approvals
+                ├→ Script lock (prevents race conditions)
+                └→ Queue processing</div>
+
+    <h2>Benefits of This System</h2>
+    
+    <div class="component-list">
+        <ul>
+            <li><strong>No Backend Required:</strong> Entirely runs on free Google services</li>
+            <li><strong>Authoritative Control:</strong> Only approved changes become official</li>
+            <li><strong>Complete Audit Trail:</strong> Every change tracked with timestamp and session</li>
+            <li><strong>Conflict Prevention:</strong> Version checking prevents data loss</li>
+            <li><strong>User-Friendly:</strong> Simple interface for non-technical users</li>
+            <li><strong>Automatic Archiving:</strong> Full version history maintained</li>
+            <li><strong>Scalable:</strong> Can handle multiple concurrent users</li>
+        </ul>
+    </div>
+
+    <h2>Maintenance Requirements</h2>
+    
+    <div class="process-flow">
+        <strong>Regular Tasks:</strong>
+        <ul>
+            <li><strong>Daily:</strong> Review and approve pending submissions</li>
+            <li><strong>Weekly:</strong> Check for failed submissions or errors</li>
+            <li><strong>Monthly:</strong> Archive old versions to separate storage</li>
+            <li><strong>As Needed:</strong> Resolve version conflicts manually</li>
+        </ul>
+    </div>
+
+    <div class="note-box">
+        This system design minimizes manual intervention while maintaining complete control over data integrity. Most operations are automated through Apps Script, requiring only approval clicks for valid submissions.
+    </div>
+
+</body>
+</html>

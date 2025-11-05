@@ -2090,7 +2090,7 @@ map.getView().setProperties({constrainResolution: true});
         '<div id="parcel-counter" class="counter-row"></div>' +
         '<div class="counter-download-section">' +
         '<button id="download-filtered-btn" class="counter-download-btn" title="Download filtered features">⬇ Download Features</button>' +
-        '<button id="edit-features-btn" class="counter-download-btn counter-edit-btn" title="Edit BMP features">Edit</button>' +
+        '<button id="edit-features-btn" class="counter-download-btn counter-edit-btn" disabled title="Editing has been temporarily disabled">Edit</button>' +
         '</div>' +
         '</div>';
     document.body.appendChild(featureCounter);
@@ -2147,18 +2147,19 @@ map.getView().setProperties({constrainResolution: true});
     });
     
     // Add edit button event listener
-    document.getElementById('edit-features-btn').addEventListener('click', function() {
-        if (typeof FeatureEditor !== 'undefined') {
-            const panel = document.getElementById('feature-editor-panel');
-            if (panel && panel.style.display === 'block') {
-                FeatureEditor.closeEditor();
-            } else {
-                FeatureEditor.show();
-            }
-        } else {
-            console.warn('FeatureEditor not yet initialized');
-        }
-    });
+    // Temporarily disabled - uncomment to re-enable editing
+    // document.getElementById('edit-features-btn').addEventListener('click', function() {
+    //     if (typeof FeatureEditor !== 'undefined') {
+    //         const panel = document.getElementById('feature-editor-panel');
+    //         if (panel && panel.style.display === 'block') {
+    //             FeatureEditor.closeEditor();
+    //         } else {
+    //             FeatureEditor.show();
+    //         }
+    //     } else {
+    //         console.warn('FeatureEditor not yet initialized');
+    //     }
+    // });
     
     // Modal event listeners
     document.getElementById('download-modal-close').addEventListener('click', function() {
@@ -3681,6 +3682,8 @@ let measuring = false;
 	let currentBMPPopup = null;
 	
 	// Add click handler for location marker
+	// Temporarily disabled - uncomment to re-enable adding BMP points via location finder
+	/*
 	map.on('singleclick', function(evt) {
 		console.log('Map clicked at pixel:', evt.pixel);
 		
@@ -3826,6 +3829,7 @@ let measuring = false;
 			});
 		}
 	});
+	*/
 	
 	// Add class to panel for sidebar shift tracking
 	locationPanel.classList.add('location-panel');

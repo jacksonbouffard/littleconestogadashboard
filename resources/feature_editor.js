@@ -107,7 +107,7 @@
                         <button id="close-editor" class="editor-close-btn" title="Close Editor">×</button>
                     </div>
                     <div class="editor-controls">
-                        <button id="toggle-edit-mode" class="editor-btn" title="Enable/Disable Editing">
+                        <button id="toggle-edit-mode" class="editor-btn" disabled title="Editing has been temporarily disabled">
                             <i class="fa fa-edit"></i> Edit Mode: OFF
                         </button>
                         <button id="add-feature-btn" class="editor-btn" disabled title="Add New BMP Point">
@@ -132,11 +132,12 @@
                 e.stopPropagation();
                 this.closeEditor();
             });
-            document.getElementById('toggle-edit-mode').addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleEditMode();
-            });
+            // Temporarily disabled - uncomment to re-enable editing
+            // document.getElementById('toggle-edit-mode').addEventListener('click', (e) => {
+            //     e.preventDefault();
+            //     e.stopPropagation();
+            //     this.toggleEditMode();
+            // });
             document.getElementById('add-feature-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
