@@ -85,6 +85,16 @@ var style_BMP_Survey_Points = function(feature, resolution){
         // Get the BMP category and create the main point style
         var category = feature.get("BMP_Category");
         
+        // Determine fill color based on BMP category
+        var fillColor;
+        if (category === 'Agricultural') {
+            fillColor = 'rgba(223,255,0,1.0)'; // #dfff00 - Agricultural
+        } else if (category === 'Restoration') {
+            fillColor = 'rgba(0,229,255,1.0)'; // #00e5ff - Restoration
+        } else {
+            fillColor = 'rgba(255,69,0,1.0)'; // #ff4500 - Stormwater (default)
+        }
+        
         // Add main point style based on BMP category
         styles.push(new ol.style.Style({
             image: new ol.style.Circle({
@@ -98,9 +108,7 @@ var style_BMP_Survey_Points = function(feature, resolution){
                     width: 1.2 * scaleFactor
                 }),
                 fill: new ol.style.Fill({
-                    color: category === 'Agricultural' ? 
-                        'rgba(76,175,80,1.0)' : // Green for Agricultural
-                        'rgba(33,150,243,1.0)'  // Blue for Stormwater
+                    color: fillColor
                 })
             }),
             text: createTextStyle(feature, resolution, labelText, labelFont,

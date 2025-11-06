@@ -126,6 +126,7 @@ function initializeUserLayers() {
         title: 'BMP Survey Points<br />\
         <img src="styles/legend/BMP_Survey_Points_0.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Stormwater<br />\
         <img src="styles/legend/BMP_Survey_Points_1.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Agricultural<br />\
+        <img src="styles/legend/BMP_Survey_Points_4.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Restoration<br />\
         <img src="styles/legend/BMP_Survey_Points_2.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Implemented<br />\
         <img src="styles/legend/BMP_Survey_Points_3.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Planned<br />' });
     

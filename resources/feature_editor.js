@@ -107,7 +107,7 @@
                         <button id="close-editor" class="editor-close-btn" title="Close Editor">×</button>
                     </div>
                     <div class="editor-controls">
-                        <button id="toggle-edit-mode" class="editor-btn" disabled title="Editing has been temporarily disabled">
+                        <button id="toggle-edit-mode" class="editor-btn" title="Toggle Edit Mode">
                             <i class="fa fa-edit"></i> Edit Mode: OFF
                         </button>
                         <button id="add-feature-btn" class="editor-btn" disabled title="Add New BMP Point">
@@ -132,12 +132,11 @@
                 e.stopPropagation();
                 this.closeEditor();
             });
-            // Temporarily disabled - uncomment to re-enable editing
-            // document.getElementById('toggle-edit-mode').addEventListener('click', (e) => {
-            //     e.preventDefault();
-            //     e.stopPropagation();
-            //     this.toggleEditMode();
-            // });
+            document.getElementById('toggle-edit-mode').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleEditMode();
+            });
             document.getElementById('add-feature-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -496,11 +495,14 @@
          */
         updateBMPCategory: function(projectType) {
             const stormwaterTypes = ['SWR', 'BSR', 'PP', 'BI'];
+            const restorationTypes = ['SR', 'FR', 'WR'];
             const bmpCategoryField = document.getElementById('field-BMP_Category');
             
             if (bmpCategoryField) {
                 if (stormwaterTypes.includes(projectType)) {
                     bmpCategoryField.value = 'Stormwater';
+                } else if (restorationTypes.includes(projectType)) {
+                    bmpCategoryField.value = 'Restoration';
                 } else if (projectType) {
                     bmpCategoryField.value = 'Agricultural';
                 } else {

@@ -280,8 +280,12 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class="checkbox-group collapsed" id="filter-bmp-category">
                   <label><input type="checkbox" value="Stormwater"> Stormwater</label>
                   <label><input type="checkbox" value="Agricultural"> Agricultural</label>
+                  <label><input type="checkbox" value="Restoration"> Restoration</label>
                   <div style="font-size: 11px; font-style: italic; color: #666; margin-top: 5px; padding-left: 5px;">
                       SWR, BI, PP & BSR are considered stormwater BMPs
+                  </div>
+                  <div style="font-size: 11px; font-style: italic; color: #666; margin-top: 5px; padding-left: 5px;">
+                      RB, SR, FR & WR are considered restoration BMPs
                   </div>
               </div>
           </div>
@@ -2090,7 +2094,7 @@ map.getView().setProperties({constrainResolution: true});
         '<div id="parcel-counter" class="counter-row"></div>' +
         '<div class="counter-download-section">' +
         '<button id="download-filtered-btn" class="counter-download-btn" title="Download filtered features">⬇ Download Features</button>' +
-        '<button id="edit-features-btn" class="counter-download-btn counter-edit-btn" disabled title="Editing has been temporarily disabled">Edit</button>' +
+        '<button id="edit-features-btn" class="counter-download-btn counter-edit-btn" title="Open Feature Editor">Edit</button>' +
         '</div>' +
         '</div>';
     document.body.appendChild(featureCounter);
@@ -2147,19 +2151,18 @@ map.getView().setProperties({constrainResolution: true});
     });
     
     // Add edit button event listener
-    // Temporarily disabled - uncomment to re-enable editing
-    // document.getElementById('edit-features-btn').addEventListener('click', function() {
-    //     if (typeof FeatureEditor !== 'undefined') {
-    //         const panel = document.getElementById('feature-editor-panel');
-    //         if (panel && panel.style.display === 'block') {
-    //             FeatureEditor.closeEditor();
-    //         } else {
-    //             FeatureEditor.show();
-    //         }
-    //     } else {
-    //         console.warn('FeatureEditor not yet initialized');
-    //     }
-    // });
+    document.getElementById('edit-features-btn').addEventListener('click', function() {
+        if (typeof FeatureEditor !== 'undefined') {
+            const panel = document.getElementById('feature-editor-panel');
+            if (panel && panel.style.display === 'block') {
+                FeatureEditor.closeEditor();
+            } else {
+                FeatureEditor.show();
+            }
+        } else {
+            console.warn('FeatureEditor not yet initialized');
+        }
+    });
     
     // Modal event listeners
     document.getElementById('download-modal-close').addEventListener('click', function() {
@@ -3682,8 +3685,6 @@ let measuring = false;
 	let currentBMPPopup = null;
 	
 	// Add click handler for location marker
-	// Temporarily disabled - uncomment to re-enable adding BMP points via location finder
-	/*
 	map.on('singleclick', function(evt) {
 		console.log('Map clicked at pixel:', evt.pixel);
 		
@@ -3829,7 +3830,6 @@ let measuring = false;
 			});
 		}
 	});
-	*/
 	
 	// Add class to panel for sidebar shift tracking
 	locationPanel.classList.add('location-panel');
