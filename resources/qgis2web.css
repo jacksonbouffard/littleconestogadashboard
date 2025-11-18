@@ -383,6 +383,21 @@ td video {
     background-color: #1e7e34;
 }
 
+/* Disabled edit button - temporarily disabled */
+#feature-counter .counter-edit-btn:disabled {
+    background-color: #d6d8db;
+    border-color: #adb5bd;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+#feature-counter .counter-edit-btn:disabled:hover {
+    background-color: #d6d8db;
+    border-color: #adb5bd;
+    color: #6c757d;
+}
+
 /* Download Modal */
 .download-modal {
     position: fixed;
