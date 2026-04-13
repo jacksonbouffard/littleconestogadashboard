@@ -80,6 +80,25 @@ var lyr_Little_Conestoga_Streams_3 = new ol.layer.Vector({
                 title: '<img src="styles/legend/Little_Conestoga_Streams_3.png" width="24" height="24" style="vertical-align: middle;" /> Little Conestoga Streams'
             });
 
+// IBI Data Layer
+var format_Little_Conestoga_IBI_Data = new ol.format.GeoJSON();
+var features_Little_Conestoga_IBI_Data = format_Little_Conestoga_IBI_Data.readFeatures(json_Little_Conestoga_IBI_Data, 
+            {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
+var jsonSource_Little_Conestoga_IBI_Data = new ol.source.Vector({
+    attributions: ' ',
+});
+jsonSource_Little_Conestoga_IBI_Data.addFeatures(features_Little_Conestoga_IBI_Data);
+var lyr_Little_Conestoga_IBI_Data = new ol.layer.Vector({
+                declutter: false,
+                source:jsonSource_Little_Conestoga_IBI_Data, 
+                style: style_Little_Conestoga_IBI_Data,
+                popuplayertitle: 'IBI Data',
+                interactive: true,
+                title: 'IBI Data<br />\
+        <img src="styles/legend/IBI_1.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Moderately Impaired<br />\
+        <img src="styles/legend/IBI_2.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Highly Impaired<br />\
+        <img src="styles/legend/IBI_3.png" width="24" height="24" style="vertical-align: middle; margin-bottom: 4px;" /> Severely Impaired<br />' });
+
 // Placeholder variables for user-uploaded layers
 var lyr_Parcel_Level_Projects = null;
 var lyr_BMP_Survey_Points = null;
@@ -140,9 +159,16 @@ function initializeUserLayers() {
     
     if (featuresGroup) {
         var layers = featuresGroup.getLayers();
+        // Order: Parcel (bottom), IBI (middle), BMP (top)
         layers.push(lyr_Parcel_Level_Projects);
+        layers.push(lyr_Little_Conestoga_IBI_Data);
         layers.push(lyr_BMP_Survey_Points);
     }
+    
+    // Set field settings for IBI layer (needed for popups)
+    lyr_Little_Conestoga_IBI_Data.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'Site_ID_': 'Site ID', 'Stream_Name': 'Stream Name', 'IBI_Score': 'IBI Score', 'IBI_Condition_Category': 'IBI Condition Category', 'IBI_Condition_Category_Modified': 'IBI Condition (Modified)', 'Sampling_Event': 'Sampling Event', 'Lat': 'Latitude', 'Long': 'Longitude', 'Notes': 'Notes', });
+    lyr_Little_Conestoga_IBI_Data.set('fieldImages', {'OBJECTID': 'Hidden', 'Site_ID_': 'TextEdit', 'Stream_Name': 'TextEdit', 'IBI_Score': 'TextEdit', 'IBI_Condition_Category': 'Hidden', 'IBI_Condition_Category_Modified': 'TextEdit', 'Sampling_Event': 'Hidden', 'Lat': 'TextEdit', 'Long': 'TextEdit', 'Notes': 'Hidden', });
+    lyr_Little_Conestoga_IBI_Data.set('fieldLabels', {'OBJECTID': 'hidden field', 'Site_ID_': 'inline label - visible with data', 'Stream_Name': 'inline label - visible with data', 'IBI_Score': 'inline label - visible with data', 'IBI_Condition_Category': 'hidden field', 'IBI_Condition_Category_Modified': 'inline label - visible with data', 'Sampling_Event': 'hidden field', 'Lat': 'inline label - visible with data', 'Long': 'inline label - visible with data', 'Notes': 'hidden field', });
     
     // Set field aliases for uploaded layers
     lyr_Parcel_Level_Projects.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'Landowner_parcel': 'Landowner_parcel', 'Unique_Landowner_ID': 'Unique_Landowner_ID', 'FarmerTracker': 'FarmerTracker', 'Impervious_Sq_Meters': 'Impervious_Sq_Meters', 'Area_Sq_Meters': 'Area_Sq_Meters', 'Prop_Impervious': 'Prop_Impervious', 'Universal_ID': 'Universal_ID', 'BMP_ID': 'BMP_ID', 'Source': 'Source', 'Source_Year': 'Source_Year', 'Project_Description': 'Project_Description', 'Local_ID': 'Local_ID', 'Project_Types': 'Project_Types', 'PM__acres_': 'PM__acres_', 'GW__acres_treated_': 'GW__acres_treated_', 'T_D__acres_treated_': 'T_D__acres_treated_', 'CSC__acres_planted_': 'CSC__acres_planted_', 'NT__acres_': 'NT__acres_', 'RB__linear_feet_': 'RB__linear_feet_', 'SR__linear_feet_': 'SR__linear_feet_', 'FR__linear_feet_': 'FR__linear_feet_', 'CC__acres_': 'CC__acres_', 'WR__acres_': 'WR__acres_', 'Other': 'Other', 'FarmerTracker_1': 'FarmerTracker_1', 'HUC12_Code': 'HUC12_Code', 'HUC12_Name': 'HUC12_Name', 'Priority_Subwatershed': 'Priority_Subwatershed', 'Municipality': 'Municipality', 'Crop_Summary': 'Crop_Summary', 'Cover_Crop_Summary': 'Cover_Crop_Summary', 'Cover_Crop_Classification': 'Cover_Crop_Classification', 'Outreach_Group': 'Outreach_Group', 'Catchment_IBI_Category': 'Catchment_IBI_Category', 'Priority_Score': 'Priority_Score', 'Project_Progress_Status': 'Project_Progress_Status', 'Address_parcel': 'Address_parcel', 'Address_parcel_1': 'Address_parcel_1', 'SRBC_Area_Order': 'SRBC_Area_Order', 'SRBC_Focus_Area_Name': 'SRBC_Focus_Area_Name', 'SRBC_Focus_Purpose': 'SRBC_Focus_Purpose', 'Recharge_Potential_Value': 'Recharge_Potential_Value', 'In_Critical_Recharge': 'In_Critical_Recharge', 'Preservation_Management': 'Preservation_Management', 'Preservation_Type': 'Preservation_Type', 'Preservation_Name': 'Preservation_Name', 'Shape_Length': 'Shape_Length', 'Shape_Area': 'Shape_Area', });
@@ -276,7 +302,7 @@ var lyr_critical_recharge_area_footprint = new ol.layer.Vector({
     title: '<img src="styles/legend/Critical_Recharge_Area_Footprint_0.png" width="24" height="24" style="vertical-align: middle;" /> Critical Recharge Area Footprint'
 });
 
-lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(true);lyr_EsriWorldImagery_3.setVisible(false);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);
+lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(true);lyr_EsriWorldImagery_3.setVisible(false);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);lyr_Little_Conestoga_IBI_Data.setVisible(false);
 // BMP and Parcel layer visibility will be set when they are initialized after upload
 
 // Create layer groups
@@ -307,7 +333,7 @@ var featuresGroup = new ol.layer.Group({
     layers: [
         lyr_Riparian_Forest_Buffer_4,
         lyr_Little_Conestoga_Streams_3
-        // BMP and Parcel layers will be added dynamically after file upload
+        // Parcel, IBI, and BMP layers will be added dynamically after file upload
     ]
 });
 
@@ -319,11 +345,11 @@ lyr_Smallsheds_7.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'SDE_SmallSheds_AR
 lyr_SRBC_Focus_Areas_8.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'FocusAreaN': 'FocusAreaN', 'FocusArea': 'FocusArea', 'Purpose': 'Purpose', 'Shape_Length': 'Shape_Length', 'Shape_Area': 'Shape_Area', });
 lyr_Delisting_Catchments.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'NAME': 'NAME', 'County': 'County', 'Acres': 'Acres', 'Shape_Length': 'Shape_Length', 'Shape_Area': 'Shape_Area', });
 lyr_Municipality_Boundaries.set('fieldAliases', {'OBJECTID': 'OBJECTID', 'MUNICIPAL_NAME': 'MUNICIPAL_NAME', 'CLASS_OF_MUNIC': 'CLASS_OF_MUNIC', 'COUNTY_NAME': 'COUNTY_NAME', 'Shape_Length': 'Shape_Length', 'Shape_Area': 'Shape_Area', });
-// BMP and Parcel field aliases will be set by initializeUserLayers() after file upload
+// BMP, Parcel, and IBI field aliases will be set by initializeUserLayers() after file upload
 
 lyr_Little_Conestoga_Streams_3.set('fieldImages', {'OBJECTID': 'TextEdit', 'gnis_id': 'TextEdit', 'stream_name': 'TextEdit', 'ATTAINS_ID': 'TextEdit', 'tributary_id': 'TextEdit', 'trib_drain_x_dd': 'TextEdit', 'trib_drain_y_dd': 'TextEdit', 'stream_origin_x_dd': 'TextEdit', 'stream_origin_y_dd': 'TextEdit', 'Mile_tributary_id': 'TextEdit', 'Number_Tributary_From_Origin': 'Range', 'Shape_Length': 'TextEdit', 'Shape_Area': 'TextEdit', });
 lyr_Riparian_Forest_Buffer_4.set('fieldImages', {'OBJECTID': 'TextEdit', 'gnis_id': 'TextEdit', 'stream_name': 'TextEdit', 'ATTAINS_ID': 'TextEdit', 'tributary_id': 'TextEdit', 'trib_drain_x_dd': 'TextEdit', 'trib_drain_y_dd': 'TextEdit', 'stream_origin_x_dd': 'TextEdit', 'stream_origin_y_dd': 'TextEdit', 'Mile_tributary_id': 'TextEdit', 'Number_Tributary_From_Origin': 'Range', 'Forest_Status': 'TextEdit', 'Sq_Meter': 'TextEdit', 'HUC12_Code': 'TextEdit', 'HUC12_Name': 'TextEdit', 'Shape_Length': 'TextEdit', 'Shape_Area': 'TextEdit', });
-// BMP and Parcel field images will be set by initializeUserLayers() after file upload
+// BMP, Parcel, and IBI field images will be set by initializeUserLayers() after file upload
 
 lyr_HUC12_Boundaries_6.set('fieldImages', {'OBJECTID': 'TextEdit', 'name': 'TextEdit', 'huc12': 'TextEdit', 'areaacres': 'TextEdit', 'areasqkm': 'TextEdit', 'GlobalID': 'TextEdit', 'Shape_Length': 'TextEdit', 'Shape_Area': 'TextEdit', });
 lyr_Smallsheds_7.set('fieldImages', {'OBJECTID': 'TextEdit', 'SDE_SmallSheds_AREA': 'TextEdit', 'PERIMETER': 'TextEdit', 'WRDS_': 'Range', 'HUC': 'Range', 'NAME': 'TextEdit', 'HEIRLEVEL': 'Range', 'COMMENTS': 'TextEdit', 'HEIRCODE': 'TextEdit', 'DRAINAGE': 'TextEdit', 'SWP': 'TextEdit', 'CHAP93': 'TextEdit', 'ID': 'TextEdit', 'AGG': 'TextEdit', 'Area_Sq_Meters': 'TextEdit', 'Sq_Meters_Impervious': 'TextEdit', 'Prop_Area_Impervious': 'TextEdit', 'Impervious_Multiplier': 'TextEdit', 'Shape_Length': 'TextEdit', 'Shape_Area': 'TextEdit', });
@@ -339,7 +365,7 @@ lyr_Smallsheds_7.set('fieldLabels', {'OBJECTID': 'no label', 'SDE_SmallSheds_ARE
 lyr_SRBC_Focus_Areas_8.set('fieldLabels', {'OBJECTID': 'no label', 'FocusAreaN': 'no label', 'FocusArea': 'no label', 'Purpose': 'no label', 'Shape_Length': 'no label', 'Shape_Area': 'no label', });
 lyr_Delisting_Catchments.set('fieldLabels', {'OBJECTID': 'no label', 'NAME': 'no label', 'County': 'no label', 'Acres': 'no label', 'Shape_Length': 'no label', 'Shape_Area': 'no label', });
 lyr_Municipality_Boundaries.set('fieldLabels', {'OBJECTID': 'no label', 'MUNICIPAL_NAME': 'no label', 'CLASS_OF_MUNIC': 'no label', 'COUNTY_NAME': 'no label', 'Shape_Length': 'no label', 'Shape_Area': 'no label', });
-// BMP and Parcel field labels will be set by initializeUserLayers() after file upload
+// BMP, Parcel, and IBI field labels will be set by initializeUserLayers() after file upload
 
 lyr_BMP_Survey_Points.on('precompose', function(evt) {
     evt.context.globalCompositeOperation = 'normal';

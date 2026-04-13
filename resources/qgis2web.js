@@ -290,6 +290,17 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
           </div>
           <div class="filter-group">
+              <label class="collapsible-label-source" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Source:</span> <span class="collapse-icon-source">▼</span>
+              </label>
+              <div class="checkbox-group collapsed" id="filter-source">
+                  <label><input type="checkbox" value="AEC"> AEC</label>
+                  <label><input type="checkbox" value="LandStudies"> LandStudies</label>
+                  <label><input type="checkbox" value="LCWA"> LCWA</label>
+                  <label><input type="checkbox" value="Blue Green Connector"> Blue Green Connector</label>
+              </div>
+          </div>
+          <div class="filter-group">
               <label class="collapsible-label-implementation" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                   <span>Implementation Status:</span> <span class="collapse-icon-implementation">▼</span>
               </label>
@@ -445,6 +456,13 @@ document.addEventListener('DOMContentLoaded', function() {
       selectedBmpCategories.push(checkbox.value);
     });
     
+    // Get selected sources from checkboxes
+    var selectedSources = [];
+    var sourceCheckboxes = document.querySelectorAll('#filter-source input[type="checkbox"]:checked');
+    sourceCheckboxes.forEach(function(checkbox) {
+      selectedSources.push(checkbox.value);
+    });
+    
     // Get selected implementation statuses from checkboxes
     var selectedImplementationStatuses = [];
     var implementationStatusCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]:checked');
@@ -558,6 +576,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Filter by BMP_Category (if any are selected)
         if (selectedBmpCategories.length > 0) {
           if (!props.BMP_Category || selectedBmpCategories.indexOf(props.BMP_Category) === -1) {
+            show = false;
+          }
+        }
+        
+        // Filter by Source (if any are selected)
+        if (selectedSources.length > 0) {
+          if (!props.Source || selectedSources.indexOf(props.Source) === -1) {
             show = false;
           }
         }
@@ -1159,6 +1184,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
+    // Check if any sources are selected (default is none, so any selection = filter active)
+    var sourceCheckboxes = document.querySelectorAll('#filter-source input[type="checkbox"]');
+    if (sourceCheckboxes.length > 0) {
+      var sourceChecked = Array.from(sourceCheckboxes).filter(cb => cb.checked).length;
+      if (sourceChecked > 0) {
+        filtersActive = true;
+        console.log('Filters active: Source');
+      }
+    }
+    
     // Update button state
     console.log('Filters active:', filtersActive);
     if (filtersActive) {
@@ -1398,6 +1433,12 @@ document.addEventListener('DOMContentLoaded', function() {
     checkbox.addEventListener('change', applyFilters);
   });
   
+  // Add event listeners for all Source checkboxes
+  var sourceCheckboxes = document.querySelectorAll('#filter-source input[type="checkbox"]');
+  sourceCheckboxes.forEach(function(checkbox) {
+    checkbox.addEventListener('change', applyFilters);
+  });
+  
   // Add event listeners for all implementation status checkboxes
   var implementationStatusCheckboxes = document.querySelectorAll('#filter-implementation-status input[type="checkbox"]');
   implementationStatusCheckboxes.forEach(function(checkbox) {
@@ -1487,6 +1528,16 @@ document.addEventListener('DOMContentLoaded', function() {
   collapsibleLabelBmp.addEventListener('click', function() {
     bmpCategoryGroup.classList.toggle('collapsed');
     collapseIconBmp.classList.toggle('collapsed');
+  });
+  
+  // Add collapsible functionality for Source
+  var collapsibleLabelSource = document.querySelector('.collapsible-label-source');
+  var sourceGroup = document.getElementById('filter-source');
+  var collapseIconSource = document.querySelector('.collapse-icon-source');
+  
+  collapsibleLabelSource.addEventListener('click', function() {
+    sourceGroup.classList.toggle('collapsed');
+    collapseIconSource.classList.toggle('collapsed');
   });
   
   // Add collapsible functionality for Implementation Status
@@ -1610,6 +1661,12 @@ document.addEventListener('DOMContentLoaded', function() {
       // Uncheck all BMP category checkboxes (default = none checked, shows all)
       var bmpCategoryCheckboxes = document.querySelectorAll('#filter-bmp-category input[type="checkbox"]');
       bmpCategoryCheckboxes.forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+      
+      // Uncheck all Source checkboxes (default = none checked, shows all)
+      var sourceCheckboxes = document.querySelectorAll('#filter-source input[type="checkbox"]');
+      sourceCheckboxes.forEach(function(checkbox) {
         checkbox.checked = false;
       });
       
@@ -2938,6 +2995,8 @@ var doHover = false;
 
 function createPopupField(currentFeature, currentFeatureKeys, layer) {
     var popupText = '';
+    var layerTitle = layer.get('popuplayertitle') || '';
+    var isBMPSurveyPoints = (layerTitle === 'BMP Survey Points');
     
     // First check if there's an image to display at the top
     if (currentFeature.get('image_url')) {
@@ -2948,13 +3007,20 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             'title="Click to view full size" /></td></tr>';
     }
     
-    // Add bullet point summary section
+    // Add bullet point summary section for BMP Survey Points
     var summaryText = '';
     var bmpCategory = currentFeature.get('BMP_Category');
     if (bmpCategory) {
         summaryText += '<tr><td colspan="2" style="padding: 15px; text-align: center; border-bottom: 2px solid #ccc; background-color: #f9f9f9;">' +
             '<div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Summary</div>' +
             '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>BMP Category:</strong> ' + bmpCategory + '</div>';
+        
+        // Add BMP Type from Project_Type field
+        var bmpType = currentFeature.get('Project_Type');
+        if (bmpType !== null && bmpType !== '' && bmpType !== undefined && 
+            (typeof bmpType !== 'string' || bmpType.trim() !== '')) {
+            summaryText += '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>BMP Type:</strong> ' + bmpType + '</div>';
+        }
         
         // Add Stormwater Priority only if category is stormwater
         if (bmpCategory.toLowerCase() === 'stormwater') {
@@ -2970,58 +3036,51 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             summaryText += '<div style="font-size: 15px; margin-bottom: 8px; color: #d32f2f; font-weight: bold;">⚠ In Critical Recharge Zone</div>';
         }
         
-        // Add source information
+        // Add source information with WAP_Num if source is LandStudies
         var source = currentFeature.get('Source');
         var sourceYear = currentFeature.get('Source_Year');
         if (source || sourceYear) {
-            summaryText += '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>Original Source:</strong> ' + 
-                (source || '') + (source && sourceYear ? ', ' : '') + (sourceYear || '') + '</div>';
+            var sourceDisplay = (source || '') + (source && sourceYear ? ', ' : '') + (sourceYear || '');
+            // Add WAP_Num in parenthesis if source is LandStudies
+            if (source && source.toLowerCase() === 'landstudies') {
+                var wapNum = currentFeature.get('WAP_Num');
+                if (wapNum !== null && wapNum !== '' && wapNum !== undefined && 
+                    (typeof wapNum !== 'string' || wapNum.trim() !== '')) {
+                    sourceDisplay += ' (WAP Num: ' + wapNum + ')';
+                }
+            }
+            summaryText += '<div style="font-size: 15px; margin-bottom: 8px;">• <strong>Original Source:</strong> ' + sourceDisplay + '</div>';
         }
         
         summaryText += '</td></tr>';
         popupText += summaryText;
     }
     
-    // Add remaining fields
-    for (var i = 0; i < currentFeatureKeys.length; i++) {
-        // Skip certain fields
-        if (currentFeatureKeys[i] == 'geometry' || 
-            currentFeatureKeys[i] == 'layerObject' || 
-            currentFeatureKeys[i] == 'idO' || 
-            currentFeatureKeys[i] == 'image_url' ||
-            currentFeatureKeys[i] == 'BMP_Category' ||
-            currentFeatureKeys[i] == 'Final_SW_Score' ||
-            currentFeatureKeys[i] == 'Source' ||
-            currentFeatureKeys[i] == 'Source_Year' ||
-            currentFeatureKeys[i] == 'In_Critical_Recharge' ||
-            currentFeatureKeys[i] == 'globalID_text') {
-            continue;
-        }
-
-        // Skip null, empty, or whitespace-only values
-        var value = currentFeature.get(currentFeatureKeys[i]);
-        if (value === null || value === '' || value === ' ' || value === undefined || 
-            (typeof value === 'string' && value.trim() === '')) {
-            continue;
-        }
-        
-        // Skip hidden fields
-        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "hidden field") {
-            continue;
-        }
-        
-        // Skip if no label is configured
-        if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "no label") {
-            continue;
-        }
-        
-        // Get the field name (label)
-        var fieldName = layer.get('fieldAliases')[currentFeatureKeys[i]] || currentFeatureKeys[i];
-        // Replace underscores with spaces and clean up field name
+    // Define ordered fields for BMP Survey Points layer
+    var bmpOrderedFields = [
+        'OBJECTID',
+        'Address',
+        'Landowner',
+        'Municipality',
+        'Project_Description',
+        'Notes',
+        'Priority_Subwatershed',
+        'SRBC_Focus_Name',
+        'Smallshed',
+        'HUC12_Code',
+        'HUC12_Name',
+        'Preservation_Name',
+        'Preservation_Status',
+        'Preservation_Type',
+        'Recharge_Potential_Value',
+        'image_url'
+    ];
+    
+    // Helper function to format field name
+    function formatFieldName(key) {
+        var fieldName = layer.get('fieldAliases')[key] || key;
         fieldName = fieldName.replace(/_/g, ' ').replace(/\([^)]*\)/g, '').trim();
-        // Capitalize properly, but preserve common acronyms
         fieldName = fieldName.replace(/\w\S*/g, function(txt) {
-            // List of acronyms that should stay uppercase
             var acronyms = ['SRBC', 'HUC12', 'HUC', 'IBI', 'BMP', 'ID', 'PM', 'GW', 'CSC', 'NT', 'RB', 'SR', 'FR', 'CC', 'WR', 'SWP', 'LC', 'SW', 'WAP'];
             var upperTxt = txt.toUpperCase();
             if (acronyms.indexOf(upperTxt) !== -1) {
@@ -3029,52 +3088,157 @@ function createPopupField(currentFeature, currentFeatureKeys, layer) {
             }
             return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
         });
-        
-        var popupField = '';
-        
-        // All fields get the same two-column format with label and value
-        popupField += '<tr style="border-bottom: 1px solid #f0f0f0;">' +
+        return fieldName;
+    }
+    
+    // Helper function to create a table row for a field
+    function createFieldRow(key, value) {
+        var fieldName = formatFieldName(key);
+        var popupField = '<tr style="border-bottom: 1px solid #f0f0f0;">' +
             '<td style="font-size: 13px; padding: 8px; text-align: left; vertical-align: top; ' +
             'background-color: #f7f7f7; color: #555; font-weight: 600; white-space: nowrap; width: 40%;">' + 
             fieldName + ':</td>' +
             '<td style="font-size: 13px; padding: 8px; text-align: left; color: #333; word-wrap: break-word; width: 60%;">';
-
-        // Handle field values
-        if (layer.get('fieldImages')[currentFeatureKeys[i]] != "ExternalResource") {
-            if (value != null && value !== '') {
-                // Format numbers nicely
-                var displayValue = value;
-                if (typeof value === 'number') {
-                    displayValue = value.toLocaleString();
-                }
-                popupField += '<span>' + autolinker.link(displayValue.toString()) + '</span></td></tr>';
+        
+        if (layer.get('fieldImages') && layer.get('fieldImages')[key] === "ExternalResource") {
+            if (/\.(gif|jpg|jpeg|tif|tiff|png|avif|webp|svg)$/i.test(value)) {
+                popupField += '<img src="images/' + value.replace(/[\\\/:]/g, '_').trim() + 
+                    '" style="max-width: 100%; margin: 5px auto; display: block; border-radius: 4px;" /></td></tr>';
+            } else if (/\.(mp4|webm|ogg|avi|mov|flv)$/i.test(value)) {
+                popupField += '<video controls style="max-width: 100%;"><source src="images/' + 
+                    value.replace(/[\\\/:]/g, '_').trim() + 
+                    '" type="video/mp4">Your browser does not support the video tag.</video></td></tr>';
+            } else if (/\.(mp3|wav|ogg|aac|flac)$/i.test(value)) {
+                popupField += '<audio controls style="width: 100%;"><source src="images/' + 
+                    value.replace(/[\\\/:]/g, '_').trim() + 
+                    '" type="audio/mpeg">Your browser does not support the audio tag.</audio></td></tr>';
             } else {
-                popupField = ''; // Don't add empty rows
+                popupField += '<span>' + autolinker.link(value.toString()) + '</span></td></tr>';
             }
         } else {
-            if (value != null && value !== '') {
-                if (/\.(gif|jpg|jpeg|tif|tiff|png|avif|webp|svg)$/i.test(value)) {
-                    popupField += '<img src="images/' + value.replace(/[\\\/:]/g, '_').trim() + 
-                        '" style="max-width: 100%; margin: 5px auto; display: block; border-radius: 4px;" /></td></tr>';
-                } else if (/\.(mp4|webm|ogg|avi|mov|flv)$/i.test(value)) {
-                    popupField += '<video controls style="max-width: 100%;"><source src="images/' + 
-                        value.replace(/[\\\/:]/g, '_').trim() + 
-                        '" type="video/mp4">Your browser does not support the video tag.</video></td></tr>';
-                } else if (/\.(mp3|wav|ogg|aac|flac)$/i.test(value)) {
-                    popupField += '<audio controls style="width: 100%;"><source src="images/' + 
-                        value.replace(/[\\\/:]/g, '_').trim() + 
-                        '" type="audio/mpeg">Your browser does not support the audio tag.</audio></td></tr>';
+            var displayValue = value;
+            if (typeof value === 'number') {
+                displayValue = value.toLocaleString();
+            }
+            popupField += '<span>' + autolinker.link(displayValue.toString()) + '</span></td></tr>';
+        }
+        return popupField;
+    }
+    
+    // For BMP Survey Points, use ordered field list
+    if (isBMPSurveyPoints) {
+        for (var j = 0; j < bmpOrderedFields.length; j++) {
+            var key = bmpOrderedFields[j];
+            var value = currentFeature.get(key);
+            
+            // Skip null, empty, or whitespace-only values
+            if (value === null || value === '' || value === ' ' || value === undefined || 
+                (typeof value === 'string' && value.trim() === '')) {
+                continue;
+            }
+            
+            // Skip image_url in table since it's shown at top
+            if (key === 'image_url') {
+                continue;
+            }
+            
+            popupText += createFieldRow(key, value);
+        }
+    } else {
+        // Original logic for other layers
+        for (var i = 0; i < currentFeatureKeys.length; i++) {
+            // Skip certain fields
+            if (currentFeatureKeys[i] == 'geometry' || 
+                currentFeatureKeys[i] == 'layerObject' || 
+                currentFeatureKeys[i] == 'idO' || 
+                currentFeatureKeys[i] == 'image_url' ||
+                currentFeatureKeys[i] == 'BMP_Category' ||
+                currentFeatureKeys[i] == 'Final_SW_Score' ||
+                currentFeatureKeys[i] == 'Source' ||
+                currentFeatureKeys[i] == 'Source_Year' ||
+                currentFeatureKeys[i] == 'In_Critical_Recharge' ||
+                currentFeatureKeys[i] == 'globalID_text') {
+                continue;
+            }
+
+            // Skip null, empty, or whitespace-only values
+            var value = currentFeature.get(currentFeatureKeys[i]);
+            if (value === null || value === '' || value === ' ' || value === undefined || 
+                (typeof value === 'string' && value.trim() === '')) {
+                continue;
+            }
+            
+            // Skip hidden fields
+            if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "hidden field") {
+                continue;
+            }
+            
+            // Skip if no label is configured
+            if (layer.get('fieldLabels')[currentFeatureKeys[i]] == "no label") {
+                continue;
+            }
+            
+            // Get the field name (label)
+            var fieldName = layer.get('fieldAliases')[currentFeatureKeys[i]] || currentFeatureKeys[i];
+            // Replace underscores with spaces and clean up field name
+            fieldName = fieldName.replace(/_/g, ' ').replace(/\([^)]*\)/g, '').trim();
+            // Capitalize properly, but preserve common acronyms
+            fieldName = fieldName.replace(/\w\S*/g, function(txt) {
+                // List of acronyms that should stay uppercase
+                var acronyms = ['SRBC', 'HUC12', 'HUC', 'IBI', 'BMP', 'ID', 'PM', 'GW', 'CSC', 'NT', 'RB', 'SR', 'FR', 'CC', 'WR', 'SWP', 'LC', 'SW', 'WAP'];
+                var upperTxt = txt.toUpperCase();
+                if (acronyms.indexOf(upperTxt) !== -1) {
+                    return upperTxt;
+                }
+                return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            });
+            
+            var popupField = '';
+            
+            // All fields get the same two-column format with label and value
+            popupField += '<tr style="border-bottom: 1px solid #f0f0f0;">' +
+                '<td style="font-size: 13px; padding: 8px; text-align: left; vertical-align: top; ' +
+                'background-color: #f7f7f7; color: #555; font-weight: 600; white-space: nowrap; width: 40%;">' + 
+                fieldName + ':</td>' +
+                '<td style="font-size: 13px; padding: 8px; text-align: left; color: #333; word-wrap: break-word; width: 60%;">';
+
+            // Handle field values
+            if (layer.get('fieldImages')[currentFeatureKeys[i]] != "ExternalResource") {
+                if (value != null && value !== '') {
+                    // Format numbers nicely
+                    var displayValue = value;
+                    if (typeof value === 'number') {
+                        displayValue = value.toLocaleString();
+                    }
+                    popupField += '<span>' + autolinker.link(displayValue.toString()) + '</span></td></tr>';
                 } else {
-                    popupField += '<span>' + autolinker.link(value.toString()) + '</span></td></tr>';
+                    popupField = ''; // Don't add empty rows
                 }
             } else {
-                popupField = ''; // Don't add empty rows
+                if (value != null && value !== '') {
+                    if (/\.(gif|jpg|jpeg|tif|tiff|png|avif|webp|svg)$/i.test(value)) {
+                        popupField += '<img src="images/' + value.replace(/[\\\/:]/g, '_').trim() + 
+                            '" style="max-width: 100%; margin: 5px auto; display: block; border-radius: 4px;" /></td></tr>';
+                    } else if (/\.(mp4|webm|ogg|avi|mov|flv)$/i.test(value)) {
+                        popupField += '<video controls style="max-width: 100%;"><source src="images/' + 
+                            value.replace(/[\\\/:]/g, '_').trim() + 
+                            '" type="video/mp4">Your browser does not support the video tag.</video></td></tr>';
+                    } else if (/\.(mp3|wav|ogg|aac|flac)$/i.test(value)) {
+                        popupField += '<audio controls style="width: 100%;"><source src="images/' + 
+                            value.replace(/[\\\/:]/g, '_').trim() + 
+                            '" type="audio/mpeg">Your browser does not support the audio tag.</audio></td></tr>';
+                    } else {
+                        popupField += '<span>' + autolinker.link(value.toString()) + '</span></td></tr>';
+                    }
+                } else {
+                    popupField = ''; // Don't add empty rows
+                }
             }
-        }
-        
-        // Add the field to the popup text only if it has content
-        if (popupField) {
-            popupText += popupField;
+            
+            // Add the field to the popup text only if it has content
+            if (popupField) {
+                popupText += popupField;
+            }
         }
     }
     
@@ -3363,24 +3527,67 @@ function onSingleClickFeatures(evt) {
                             for (var j = 0; j < allStyles.length; j++) {
                                 var originalStyle = allStyles[j];
                                 if (originalStyle.getImage()) {
-                                    var originalRadius = originalStyle.getImage().getRadius();
-                                    styles.push(new ol.style.Style({
-                                        image: new ol.style.Circle({
+                                    var originalImage = originalStyle.getImage();
+                                    var originalRadius = originalImage.getRadius();
+                                    
+                                    // Check if original is a RegularShape (square, triangle, etc.)
+                                    if (originalImage instanceof ol.style.RegularShape && !(originalImage instanceof ol.style.Circle)) {
+                                        styles.push(new ol.style.Style({
+                                            image: new ol.style.RegularShape({
+                                                points: originalImage.getPoints(),
+                                                radius: originalRadius,
+                                                angle: originalImage.getAngle(),
+                                                fill: new ol.style.Fill({
+                                                    color: "rgba(255, 255, 0, 0.5)"
+                                                }),
+                                                stroke: new ol.style.Stroke({
+                                                    color: "#ffff00",
+                                                    width: 2
+                                                })
+                                            })
+                                        }));
+                                    } else {
+                                        styles.push(new ol.style.Style({
+                                            image: new ol.style.Circle({
+                                                fill: new ol.style.Fill({
+                                                    color: "rgba(255, 255, 0, 0.5)"
+                                                }),
+                                                stroke: new ol.style.Stroke({
+                                                    color: "#ffff00",
+                                                    width: 2
+                                                }),
+                                                radius: originalRadius
+                                            })
+                                        }));
+                                    }
+                                }
+                            }
+                            return styles;
+                        } else {
+                            // Single style point (no halo) - check shape type
+                            if (allStyles && allStyles[0] && allStyles[0].getImage()) {
+                                var originalImage = allStyles[0].getImage();
+                                var originalRadius = originalImage.getRadius() || 8;
+                                
+                                // Check if original is a RegularShape (square, triangle, etc.)
+                                if (originalImage instanceof ol.style.RegularShape && !(originalImage instanceof ol.style.Circle)) {
+                                    return [new ol.style.Style({
+                                        image: new ol.style.RegularShape({
+                                            points: originalImage.getPoints(),
+                                            radius: originalRadius,
+                                            angle: originalImage.getAngle(),
                                             fill: new ol.style.Fill({
                                                 color: "rgba(255, 255, 0, 0.5)"
                                             }),
                                             stroke: new ol.style.Stroke({
                                                 color: "#ffff00",
                                                 width: 2
-                                            }),
-                                            radius: originalRadius
+                                            })
                                         })
-                                    }));
+                                    })];
                                 }
                             }
-                            return styles;
-                        } else {
-                            // Single style point (no halo)
+                            // Default to circle
                             return [new ol.style.Style({
                                 image: new ol.style.Circle({
                                     fill: new ol.style.Fill({
@@ -4171,6 +4378,212 @@ let measuring = false;
 	});
 	
 	// ==================== END LOCATION LOOKUP CONTROL ====================
+	
+	// ==================== WHAT'S HERE CONTEXT MENU ====================
+	
+	// Create context menu element
+	const contextMenu = document.createElement('div');
+	contextMenu.id = 'map-context-menu';
+	contextMenu.style.cssText = `
+		display: none;
+		position: fixed;
+		background: rgba(255, 255, 255, 0.4);
+		border: 2px solid #0056b3;
+		border-radius: 6px;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+		z-index: 10000;
+		min-width: 200px;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+		font-size: 13px;
+		overflow: hidden;
+		padding: 2px;
+	`;
+	document.body.appendChild(contextMenu);
+	
+	// Store clicked coordinates
+	let contextMenuCoords = null;
+	let contextMenuLonLat = null;
+	let contextMenuAddress = null;
+	
+	// Prevent default context menu on the map
+	map.getViewport().addEventListener('contextmenu', function(evt) {
+		evt.preventDefault();
+		
+		// Get coordinates
+		const pixel = [evt.clientX - map.getViewport().getBoundingClientRect().left, 
+					   evt.clientY - map.getViewport().getBoundingClientRect().top];
+		contextMenuCoords = map.getCoordinateFromPixel(pixel);
+		contextMenuLonLat = ol.proj.toLonLat(contextMenuCoords);
+		contextMenuAddress = null; // Reset address
+		
+		// Build menu HTML
+		let menuHTML = `
+			<div style="background: white; border-radius: 4px; overflow: hidden;">
+				<div style="padding: 8px 12px; background: #5a9fd4; color: white; font-weight: 600; font-size: 12px;">
+					<i class="fas fa-map-marker-alt" style="margin-right: 6px;"></i>What's Here?
+				</div>
+				<div style="padding: 8px 0;">
+					<div id="ctx-coords" style="padding: 8px 14px; border-bottom: 1px solid #eee;">
+						<div style="font-size: 11px; color: #888; margin-bottom: 4px;">Coordinates</div>
+						<div style="font-weight: 500; color: #333;">${contextMenuLonLat[1].toFixed(6)}, ${contextMenuLonLat[0].toFixed(6)}</div>
+					</div>
+					<div id="ctx-address" style="padding: 8px 14px; border-bottom: 1px solid #eee;">
+						<div style="font-size: 11px; color: #888; margin-bottom: 4px;">Address</div>
+						<div id="ctx-address-text" style="color: #333;"><i class="fas fa-spinner fa-spin"></i> Looking up...</div>
+					</div>
+					<div id="ctx-copy-coords" class="ctx-menu-item" style="padding: 10px 14px; cursor: pointer; display: flex; align-items: center; transition: background 0.15s;">
+						<i class="fas fa-copy" style="margin-right: 10px; color: #5a9fd4; width: 16px;"></i>
+						<span>Copy Coordinates</span>
+					</div>
+					<div id="ctx-copy-address" class="ctx-menu-item" style="padding: 10px 14px; cursor: pointer; display: flex; align-items: center; transition: background 0.15s;">
+						<i class="fas fa-copy" style="margin-right: 10px; color: #5a9fd4; width: 16px;"></i>
+						<span>Copy Address</span>
+					</div>
+					<div id="ctx-copy-both" class="ctx-menu-item" style="padding: 10px 14px; cursor: pointer; display: flex; align-items: center; transition: background 0.15s;">
+						<i class="fas fa-clipboard" style="margin-right: 10px; color: #5a9fd4; width: 16px;"></i>
+						<span>Copy Both</span>
+					</div>
+				</div>
+			</div>
+		`;
+		
+		contextMenu.innerHTML = menuHTML;
+		
+		// Position menu at click location
+		let menuX = evt.clientX;
+		let menuY = evt.clientY;
+		
+		// Ensure menu stays within viewport
+		contextMenu.style.display = 'block';
+		const menuRect = contextMenu.getBoundingClientRect();
+		
+		if (menuX + menuRect.width > window.innerWidth) {
+			menuX = window.innerWidth - menuRect.width - 10;
+		}
+		if (menuY + menuRect.height > window.innerHeight) {
+			menuY = window.innerHeight - menuRect.height - 10;
+		}
+		
+		contextMenu.style.left = menuX + 'px';
+		contextMenu.style.top = menuY + 'px';
+		
+		// Add hover effects
+		const menuItems = contextMenu.querySelectorAll('.ctx-menu-item');
+		menuItems.forEach(item => {
+			item.addEventListener('mouseenter', function() {
+				this.style.backgroundColor = '#f0f7ff';
+			});
+			item.addEventListener('mouseleave', function() {
+				this.style.backgroundColor = 'transparent';
+			});
+		});
+		
+		// Reverse geocode to get address
+		const lat = contextMenuLonLat[1];
+		const lon = contextMenuLonLat[0];
+		const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+		
+		fetch(reverseUrl)
+			.then(response => response.json())
+			.then(data => {
+				const addressText = document.getElementById('ctx-address-text');
+				if (data && data.display_name) {
+					contextMenuAddress = data.display_name;
+					// Truncate if too long for display
+					const shortAddress = contextMenuAddress.length > 60 ? 
+						contextMenuAddress.substring(0, 60) + '...' : contextMenuAddress;
+					addressText.innerHTML = shortAddress;
+					addressText.title = contextMenuAddress; // Full address on hover
+				} else {
+					contextMenuAddress = 'Address not found';
+					addressText.innerHTML = '<span style="color: #999;">Address not found</span>';
+				}
+			})
+			.catch(error => {
+				console.error('Reverse geocoding error:', error);
+				const addressText = document.getElementById('ctx-address-text');
+				contextMenuAddress = 'Error looking up address';
+				addressText.innerHTML = '<span style="color: #d9534f;">Error looking up address</span>';
+			});
+		
+		// Copy coordinates handler
+		document.getElementById('ctx-copy-coords').addEventListener('click', function() {
+			const coordsText = `${contextMenuLonLat[1].toFixed(6)}, ${contextMenuLonLat[0].toFixed(6)}`;
+			navigator.clipboard.writeText(coordsText).then(() => {
+				showCopyNotification('Coordinates copied!');
+				hideContextMenu();
+			});
+		});
+		
+		// Copy address handler
+		document.getElementById('ctx-copy-address').addEventListener('click', function() {
+			if (contextMenuAddress && contextMenuAddress !== 'Address not found' && contextMenuAddress !== 'Error looking up address') {
+				navigator.clipboard.writeText(contextMenuAddress).then(() => {
+					showCopyNotification('Address copied!');
+					hideContextMenu();
+				});
+			} else {
+				showCopyNotification('Address not available', true);
+			}
+		});
+		
+		// Copy both handler
+		document.getElementById('ctx-copy-both').addEventListener('click', function() {
+			const coordsText = `${contextMenuLonLat[1].toFixed(6)}, ${contextMenuLonLat[0].toFixed(6)}`;
+			let bothText = `Coordinates: ${coordsText}`;
+			if (contextMenuAddress && contextMenuAddress !== 'Address not found' && contextMenuAddress !== 'Error looking up address') {
+				bothText += `\nAddress: ${contextMenuAddress}`;
+			}
+			navigator.clipboard.writeText(bothText).then(() => {
+				showCopyNotification('Copied to clipboard!');
+				hideContextMenu();
+			});
+		});
+	});
+	
+	// Hide context menu when clicking elsewhere
+	document.addEventListener('click', function(evt) {
+		if (!contextMenu.contains(evt.target)) {
+			hideContextMenu();
+		}
+	});
+	
+	// Hide context menu on scroll or map move
+	map.on('movestart', hideContextMenu);
+	
+	function hideContextMenu() {
+		contextMenu.style.display = 'none';
+	}
+	
+	// Show copy notification
+	function showCopyNotification(message, isError) {
+		const notification = document.createElement('div');
+		notification.style.cssText = `
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: ${isError ? '#d9534f' : '#5cb85c'};
+			color: white;
+			padding: 10px 20px;
+			border-radius: 4px;
+			font-size: 13px;
+			font-weight: 500;
+			z-index: 10001;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+			animation: fadeInUp 0.3s ease;
+		`;
+		notification.textContent = message;
+		document.body.appendChild(notification);
+		
+		setTimeout(() => {
+			notification.style.opacity = '0';
+			notification.style.transition = 'opacity 0.3s ease';
+			setTimeout(() => notification.remove(), 300);
+		}, 2000);
+	}
+	
+	// ==================== END WHAT'S HERE CONTEXT MENU ====================
 	
 	/**
 	 * Currently drawn feature.
