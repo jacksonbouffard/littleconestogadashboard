@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
                   <label><input type="checkbox" value="EAST HEMPFIELD"> East Hempfield</label>
                   <label><input type="checkbox" value="EAST PETERSBURG"> East Petersburg</label>
                   <label><input type="checkbox" value="LANCASTER"> Lancaster</label>
+                  <label><input type="checkbox" value="LANCASTER CITY"> Lancaster City</label>
                   <label><input type="checkbox" value="LITITZ"> Lititz</label>
                   <label><input type="checkbox" value="MANHEIM"> Manheim</label>
                   <label><input type="checkbox" value="MANOR"> Manor</label>
@@ -4899,11 +4900,15 @@ var bottomAttribution = new ol.control.Attribution({
 });
 map.addControl(bottomAttribution);
 
+var layerCreditName = 'jacksonbouffard';
+var layerCreditUrl = 'https://jacksonbouffard.com';
+
 var attributionList = document.createElement('li');
 attributionList.innerHTML = `
 	<a href="https://github.com/qgis2web/qgis2web">qgis2web</a> &middot;
 	<a href="https://openlayers.org/">OpenLayers</a> &middot;
-	<a href="https://qgis.org/">QGIS</a>	
+  <a href="https://qgis.org/">QGIS</a> &middot;
+  <a href="${layerCreditUrl}" target="_blank" rel="noopener noreferrer">${layerCreditName}</a>
 `;
 var bottomAttributionUl = bottomAttribution.element.querySelector('ul');
 if (bottomAttributionUl) {
@@ -4972,6 +4977,9 @@ document.addEventListener('DOMContentLoaded', function() {
         scaleLineControl.className += ' ol-control';
         bottomLeftContainerDiv.appendChild(scaleLineControl);
     }
+
+    //custom layer credit shown in bottom-left with other controls
+
     //attribution
     var attributionControl = document.getElementsByClassName('bottom-attribution')[0];
     if (attributionControl) {

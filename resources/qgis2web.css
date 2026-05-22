@@ -911,6 +911,21 @@ td video {
 	list-style: none;	
 	}
 
+.layer-credit-control {
+    position: relative;
+    margin: 0;
+    padding: 6px 10px;
+    background: #f8f8f8;
+    color: #444444;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.layer-credit-text {
+    white-space: nowrap;
+}
+
 .fa-exclamation-triangle {
     color: orangered;
 	font-size: 15px;

@@ -46,6 +46,17 @@ var wms_layers = [];
                 url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'
             })
         });
+
+        var lyr_USGSTopo = new ol.layer.Tile({
+            'title': 'USGS Topographic',
+            'opacity': 1.000000,
+
+
+            source: new ol.source.XYZ({
+            attributions: 'Tiles courtesy of the U.S. Geological Survey',
+                url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}'
+            })
+        });
 var format_Riparian_Forest_Buffer_4 = new ol.format.GeoJSON();
 var features_Riparian_Forest_Buffer_4 = format_Riparian_Forest_Buffer_4.readFeatures(json_Riparian_Forest_Buffer_4, 
             {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});
@@ -302,13 +313,14 @@ var lyr_critical_recharge_area_footprint = new ol.layer.Vector({
     title: '<img src="styles/legend/Critical_Recharge_Area_Footprint_0.png" width="24" height="24" style="vertical-align: middle;" /> Critical Recharge Area Footprint'
 });
 
-lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(true);lyr_EsriWorldImagery_3.setVisible(false);lyr_EsriImageryLabels_4.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);lyr_Little_Conestoga_IBI_Data.setVisible(false);
+lyr_OpenStreetMap_0.setVisible(false);lyr_GoogleSatellite_2.setVisible(true);lyr_EsriWorldImagery_3.setVisible(false);lyr_EsriImageryLabels_4.setVisible(false);lyr_USGSTopo.setVisible(false);lyr_Little_Conestoga_Streams_3.setVisible(false);lyr_Riparian_Forest_Buffer_4.setVisible(false);lyr_HUC12_Boundaries_6.setVisible(true);lyr_Smallsheds_7.setVisible(false);lyr_SRBC_Focus_Areas_8.setVisible(false);lyr_Delisting_Catchments.setVisible(false);lyr_Municipality_Boundaries.setVisible(false);lyr_critical_recharge_area_footprint.setVisible(false);lyr_Little_Conestoga_IBI_Data.setVisible(false);
 // BMP and Parcel layer visibility will be set when they are initialized after upload
 
 // Create layer groups
 var basemapGroup = new ol.layer.Group({
     title: 'Base Maps',
     layers: [
+        lyr_USGSTopo,
         lyr_OpenStreetMap_0,
         lyr_EsriWorldImagery_3,
         lyr_GoogleSatellite_2,
